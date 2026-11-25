@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HudState } from "./components/primitives";
+import { useVoiceSocket, type VoiceSocketEvent } from "./hooks/useVoiceSocket";
 import { Workspace } from "./components/Workspace";
 import { MiniOverlay } from "./components/MiniOverlay";
 import { Workshop } from "./components/Workshop";
@@ -110,6 +111,17 @@ export default function App() {
   const abortRef = useRef<AbortController | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
   const firedReminders = useRef<Set<string>>(new Set());
+
+  // Голосовой сокет живёт на уровне приложения: уровень микрофона доступен
+  // и шапке Workspace, и MiniOverlay, независимо от того, какое окно открыто.
+  const overlayVoiceHandler = useRef<(event: VoiceSocketEvent) => void>(() => undefined);
+  const voice = useVoiceSocket((event) => {
+    if (event.event === "level" && typeof event.level === "number") {
+      window.dispatchEvent(new CustomEvent("amadeus.voice.level", { detail: event.level }));
+    }
+    overlayVoiceHandler.current(event);
+  });
+  useEffect(() => () => voice.stop(), [voice.stop]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -678,6 +690,8 @@ export default function App() {
             setView("workspace");
           }}
           onVoiceCommand={voiceCommand}
+          voice={voice}
+          voiceHandler={overlayVoiceHandler}
         />
       )}
 

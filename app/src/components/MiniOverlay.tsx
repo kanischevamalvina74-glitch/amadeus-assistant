@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { MiniCore, type HudState } from "./primitives";
 import { CharacterAvatar } from "./CharacterAvatar";
 import type { AvatarMode } from "../lib/preferences";
 import { useLocale } from "../lib/i18n";
 import { useWakeWord } from "../hooks/useWakeWord";
 import { useWakeSocket } from "../hooks/useWakeSocket";
-import { useVoiceSocket } from "../hooks/useVoiceSocket";
+import type { VoiceSocket, VoiceSocketEvent } from "../hooks/useVoiceSocket";
 import { playCue } from "../lib/sound";
 import "./mini.css";
 
@@ -15,6 +15,8 @@ type Props = {
   conversationId?: string | null;
   avatar: AvatarMode;
   autoWake?: boolean;
+  voice: VoiceSocket;
+  voiceHandler: MutableRefObject<(event: VoiceSocketEvent) => void>;
 };
 
 const MIC_LABEL: Record<string, string> = {
@@ -25,7 +27,7 @@ const MIC_LABEL: Record<string, string> = {
   error: "микрофон не отвечает",
 };
 
-export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar, autoWake = false }: Props) {
+export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar, autoWake = false, voice, voiceHandler }: Props) {
   const { t: tr } = useLocale();
   const [state, setState] = useState<HudState>("idle");
   const [caption, setCaption] = useState(tr("mini.wake"));
@@ -53,7 +55,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     return () => window.clearTimeout(id);
   }, []);
 
-  const voice = useVoiceSocket((event) => {
+  const handleVoiceEvent = (event: VoiceSocketEvent) => {
     if (event.event === "transcript" && event.text) {
       setState("thinking");
       setCaption(`«${event.text}»`);
@@ -75,8 +77,8 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     }
     if (event.event === "barge_in") setState("listening");
     if (event.event === "level" && typeof event.level === "number") {
+      // Глобальное событие отправляет общий сокет в App.
       setLevel(event.level);
-      window.dispatchEvent(new CustomEvent("amadeus.voice.level", { detail: event.level }));
     }
     if (event.event === "screenshot") {
       setState("speaking");
@@ -97,11 +99,10 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
       setCaption(event.message ?? "Ошибка голосовой сессии");
       playCue("error");
     }
-  });
+  };
+  voiceHandler.current = handleVoiceEvent;
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
-
-  useEffect(() => () => voice.stop(), [voice.stop]);
 
   const handleWake = useCallback(() => {
     clearTimers();

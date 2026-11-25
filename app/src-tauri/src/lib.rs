@@ -106,20 +106,23 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
         });
         // Ждём, пока ядро реально поднимет порт. Иначе при быстром повторном
         // вызове запускается ещё один сайдкар, который не может занять порт.
+        // Ядро на Windows поднимается медленно (PyInstaller + тяжёлые библиотеки),
+        // поэтому ждём до 2 минут. Ни в коем случае не убиваем запущенный процесс
+        // по таймауту: иначе остаётся «Failed to fetch» и ноль моделей в настройках.
         let mut ready = false;
-        for _ in 0..50 {
+        for _ in 0..600 {
             if backend_port_open() {
                 ready = true;
                 break;
             }
             std::thread::sleep(Duration::from_millis(200));
         }
-        if !ready {
-            let _ = child.kill();
-            return Err("ядро не ответило на :8787".into());
-        }
         *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Sidecar(child));
-        return Ok("ядро запущено из externalBin".into());
+        return Ok(if ready {
+            "ядро запущено из externalBin".into()
+        } else {
+            "ядро запущено, ожидает готовности; UI продолжит опрашивать :8787".into()
+        });
     }
 
     // В dev-режиме fallback на исходники и системный Python.

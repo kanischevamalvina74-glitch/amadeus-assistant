@@ -1825,12 +1825,16 @@ async def web_fetch(url: str) -> dict[str, Any]:
 
 
 @app.get("/api/models.list")
-async def models_list(user_id: str = Depends(current_user)) -> dict[str, Any]:
+async def models_list(base_url: str | None = None, user_id: str = Depends(current_user)) -> dict[str, Any]:
     models: list[str] = []
     error: str | None = None
+    url = (base_url or settings.ollama_base_url).rstrip("/")
+    host = urlparse(url).hostname or ""
+    if not settings.is_allowed_provider_host(host):
+        return {"ollama": [], "error": "Адрес не разрешён", "active": {}}
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            response = await client.get(f"{settings.ollama_base_url}/api/tags")
+            response = await client.get(f"{url}/api/tags")
             response.raise_for_status()
             models = [item.get("name", "") for item in response.json().get("models", []) if item.get("name")]
     except httpx.HTTPError as exc:

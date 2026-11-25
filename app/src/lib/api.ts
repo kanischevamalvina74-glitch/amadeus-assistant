@@ -264,8 +264,9 @@ export const api = {
     return request("/settings.import", { method: "POST", body: JSON.stringify({ data }) });
   },
 
-  async modelsList(): Promise<{ ollama: string[]; error: string | null; active: Record<string, unknown> }> {
-    return request("/models.list");
+  async modelsList(baseUrl?: string): Promise<{ ollama: string[]; error: string | null; active: Record<string, unknown> }> {
+    const query = baseUrl ? `?base_url=${encodeURIComponent(baseUrl)}` : "";
+    return request(`/models.list${query}`);
   },
 
   async modelsActivate(providerId: string, modelId: string, baseUrl?: string): Promise<{ ok: boolean; provider_id: string; model_id: string }> {
