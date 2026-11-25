@@ -28,6 +28,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
   const { t: tr } = useLocale();
   const [state, setState] = useState<HudState>("idle");
   const [caption, setCaption] = useState(tr("mini.wake"));
+  const [level, setLevel] = useState(0);
   const [hintVisible, setHintVisible] = useState(true);
   const timers = useRef<number[]>([]);
 
@@ -53,6 +54,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
       setCaption(event.text);
     }
     if (event.event === "barge_in") setState("listening");
+    if (event.event === "level" && typeof event.level === "number") setLevel(event.level);
     if (event.event === "screenshot") {
       setState("speaking");
       setCaption("Снимок экрана готов");
@@ -204,6 +206,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
             state={state}
             size={64}
             wake={wakeActive}
+            level={level}
             dim={state === "idle" && !wakeActive && !hintVisible}
             tipAlign="right"
             onClick={onRestore}

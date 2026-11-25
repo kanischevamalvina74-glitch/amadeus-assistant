@@ -7,6 +7,7 @@ export type VoiceSocketEvent = {
   wav_base64?: string;
   content_base64?: string;
   message?: string;
+  level?: number;
 };
 
 export type VoiceSocket = {
@@ -86,6 +87,10 @@ export function useVoiceSocket(onEvent: (event: VoiceSocketEvent) => void): Voic
             pcm[i] = value < 0 ? value * 0x8000 : value * 0x7fff;
           }
           ws.send(pcm.buffer);
+          let sum = 0;
+          for (let i = 0; i < input.length; i += 1) sum += pcm[i] * pcm[i];
+          const rms = Math.sqrt(sum / Math.max(1, input.length)) / 32768;
+          handler.current({ event: "level", level: Math.min(1, rms * 4) });
         };
         const sink = ctx.createGain();
         sink.gain.value = 0;  // без обратной связи с динамиком

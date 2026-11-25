@@ -598,3 +598,31 @@
 .app[data-focus="true"] .sidebar,
 .app[data-focus="true"] .panel { display: none; }
 .app[data-focus="true"] .shell { grid-template-columns: 1fr; }
+
+/* Кнопки управления генерацией и быстрые подсказки. */
+.stop-btn {
+  border: 1px solid var(--color-accent-dim);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.stop-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+.quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.quick-prompts button {
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  padding: 3px 9px;
+  font-size: 10px;
+  cursor: pointer;
+}
+.quick-prompts button:hover { color: var(--color-accent); border-color: var(--color-accent-dim); }

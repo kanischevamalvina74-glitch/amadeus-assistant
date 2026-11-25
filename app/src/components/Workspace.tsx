@@ -36,6 +36,8 @@ type Props = {
   onCollapse: () => void;
   onTalk: () => void;
   onToggleTheme: () => void;
+  onStop: () => void;
+  onRegenerate: () => void;
   latencyMs?: number | null;
   tokensPerSecond?: number | null;
 };
@@ -319,6 +321,8 @@ export function Workspace({
   onCollapse,
   onTalk,
   onToggleTheme,
+  onStop,
+  onRegenerate,
   latencyMs = null,
   tokensPerSecond = null,
 }: Props) {
@@ -342,6 +346,7 @@ export function Workspace({
   const [focusMode, setFocusMode] = useState(false);
   const [panel, setPanel] = useState<Panel>("none");
   const chatRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const bars = useMemo(
     () =>
@@ -427,6 +432,13 @@ export function Workspace({
         setDragRect(null);
       });
   };
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [draft]);
 
   useEffect(() => {
     try {
@@ -641,19 +653,21 @@ export function Workspace({
             <button className="btn primary" onClick={onTalk} title={tr("voice.microphone")}>
               {tr("voice.microphone")}
             </button>
-            <div className="wave" aria-hidden="true">
-              {bars.map((bar, i) => (
-                <i
-                  key={i}
-                  style={{
-                    height: `${Math.round(6 + ((i * 37) % 11) * 0.55)}px`,
-                    animationDelay: `${bar.delay}s`,
-                    animationDuration: `${bar.duration}s`,
-                    "--h": `${bar.height}px`,
-                  } as CSSProperties}
-                />
-              ))}
-            </div>
+            {state === "listening" && (
+              <div className="wave" aria-hidden="true">
+                {bars.map((bar, i) => (
+                  <i
+                    key={i}
+                    style={{
+                      height: `${Math.round(6 + ((i * 37) % 11) * 0.55)}px`,
+                      animationDelay: `${bar.delay}s`,
+                      animationDuration: `${bar.duration}s`,
+                      "--h": `${bar.height}px`,
+                    } as CSSProperties}
+                  />
+                ))}
+              </div>
+            )}
             <button className="btn ghost" onClick={onCollapse}>
               {tr("voice.collapse")}
             </button>
@@ -740,6 +754,7 @@ export function Workspace({
             {fileError && <p className="attachment-error" role="alert">{fileError}</p>}
             <div className="composer">
               <textarea
+                ref={inputRef}
                 className="input"
                 rows={1}
                 value={draft}
@@ -747,11 +762,20 @@ export function Workspace({
                 aria-label="Сообщение"
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
+                  if (event.key === "Enter" && event.shiftKey) return;
+                  if (event.key === "Enter") {
                     event.preventDefault();
                     submit();
                   }
+                  if (event.key === "ArrowUp" && !draft.trim()) {
+                    const last = [...messages].reverse().find((m) => m.role === "user");
+                    if (last) {
+                      event.preventDefault();
+                      setDraft(last.text);
+                    }
+                  }
                 }}
+                style={{ resize: "none", maxHeight: 160 }}
               />
               <button className="icon-btn" title="Вложение" type="button" onClick={() => fileRef.current?.click()}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -771,10 +795,25 @@ export function Workspace({
                   <rect x="8" y="8" width="8" height="8" strokeDasharray="2 2" />
                 </svg>
               </button>
+              {(state === "thinking" || state === "speaking") && (
+                <button className="stop-btn" type="button" title="Остановить генерацию" onClick={onStop}>
+                  ■ Стоп
+                </button>
+              )}
               <button className="send" title="Отправить" type="button" onClick={submit}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 12l16-8-6 16-3-6-7-2z" />
                 </svg>
+              </button>
+            </div>
+            <div className="quick-prompts" aria-label="Подсказки">
+              {["Что у меня сегодня?", "Открой проект", "Сделай скриншот", "Напомни через 10 минут"].map((hint) => (
+                <button key={hint} type="button" onClick={() => setDraft(hint)}>
+                  {hint}
+                </button>
+              ))}
+              <button type="button" onClick={onRegenerate} title="Перегенерировать последний ответ">
+                ↻ Перегенерировать
               </button>
             </div>
             <div className="hints">

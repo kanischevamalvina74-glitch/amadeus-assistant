@@ -478,6 +478,8 @@ export interface MiniCoreProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tipAlign?: "center" | "left" | "right";
   /** Кодовое слово услышано: подпись видна без наведения. */
   wake?: boolean;
+  /** Уровень микрофона 0..1 — пульсация ядра при слушании. */
+  level?: number;
 }
 
 /**
@@ -490,6 +492,7 @@ export function MiniCore({
   dim = false,
   tipAlign = "center",
   wake = false,
+  level = 0,
   className = "",
   ...props
 }: MiniCoreProps) {
@@ -503,7 +506,7 @@ export function MiniCore({
       data-dim={dim || undefined}
       data-align={tipAlign}
       data-wake={wake || undefined}
-      style={{ "--mini-size": `${size}px` } as CSSProperties}
+      style={{ "--mini-size": `${size}px`, "--hud-level": level } as CSSProperties}
       aria-label={`Ассистент: ${HUD_LABEL[state]}. Открыть окно`}
       {...props}
     >

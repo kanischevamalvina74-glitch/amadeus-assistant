@@ -74,6 +74,8 @@ export default function App() {
   });
   const [latency, setLatency] = useState<{ ms: number; tps: number } | null>(null);
   const busy = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const [lastPrompt, setLastPrompt] = useState("");
   const firedReminders = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -301,6 +303,9 @@ export default function App() {
     }
 
     busy.current = true;
+    setLastPrompt(text.trim());
+    const controller = new AbortController();
+    abortRef.current = controller;
     const userMessage: ChatMessage = {
       id: newId(),
       role: "user",
@@ -330,7 +335,7 @@ export default function App() {
               prev.map((item) => (item.id === answerId ? { ...item, text: received } : item)),
             );
           }
-        }, undefined, attachments);
+        }, controller.signal, attachments);
         if (!received.trim()) throw new Error("ядро вернуло пустой ответ");
         const elapsed = Math.max(0.001, (performance.now() - startedAt) / 1000);
         setLatency({
@@ -359,6 +364,8 @@ export default function App() {
         setState("error");
       } finally {
         busy.current = false;
+      abortRef.current = null;
+        abortRef.current = null;
       }
       return;
     }
@@ -417,6 +424,23 @@ export default function App() {
       void refreshModel();
     }
   };
+
+  const stopAnswer = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    busy.current = false;
+    setState("idle");
+    setMessages((prev) => prev.map((item) => (item.streaming ? { ...item, streaming: false } : item)));
+  }, []);
+
+  const regenerate = useCallback(() => {
+    if (!lastPrompt.trim()) return;
+    setMessages((prev) => {
+      const index = prev.map((item) => item.text).lastIndexOf(lastPrompt);
+      return index >= 0 ? prev.slice(0, index) : prev;
+    });
+    void send(lastPrompt);
+  }, [lastPrompt, send]);
 
   const voiceCommand = useCallback(
     async (text: string): Promise<string> => {
@@ -528,6 +552,8 @@ export default function App() {
             setView("mini");
           }}
           onToggleTheme={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}
+          onStop={stopAnswer}
+          onRegenerate={regenerate}
           latencyMs={latency?.ms ?? null}
           tokensPerSecond={latency?.tps ?? null}
         />

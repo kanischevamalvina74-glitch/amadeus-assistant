@@ -44,6 +44,19 @@ test.describe("F04 текстовая беседа с контекстом", () 
     await expect(page.getByRole("complementary", { name: "История диалогов" })).toBeVisible();
   });
 
+  test("F04-H5 подсказки и редактирование последнего сообщения", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    const input = page.getByRole("textbox", { name: "Сообщение" });
+    await page.getByRole("button", { name: "Что у меня сегодня?" }).click();
+    await expect(input).toHaveValue("Что у меня сегодня?");
+    await input.fill("");
+    await input.press("ArrowUp");
+    await expect(input).not.toHaveValue("");
+    await input.press("Shift+Enter");
+    await expect(input).toHaveValue(/\n/);
+  });
+
   test("F04-H1 Send → стриминговый ответ → история", async ({ page }) => {
     const errors = await openWorkspace(page);
     const input = page.getByRole("textbox", { name: "Сообщение" });

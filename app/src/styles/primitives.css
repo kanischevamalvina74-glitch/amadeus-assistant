@@ -636,3 +636,20 @@
   .mini__spin, .mini__core, .mini__halo, .mini::before, .mini::after { animation: none !important; }
   .mini__tip { transition: none; }
 }
+
+/* Пульсация ядра от реального уровня микрофона. */
+.mini[data-state="listening"] .mini__core {
+  transform: scale(calc(1 + var(--hud-level, 0) * .28));
+  transform-origin: 50% 50%;
+}
+.mini[data-state="error"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--color-danger);
+  opacity: .28;
+  animation: hud-flash .45s var(--ease) 2;
+  pointer-events: none;
+}
+@keyframes hud-flash { 0%, 100% { opacity: 0; } 50% { opacity: .34; } }
