@@ -48,7 +48,8 @@ test.describe("S08/S15 настройки и F05 вложения", () => {
     await expect(page.locator(".hud-scene")).toBeVisible();
     await expect(page.getByRole("log", { name: "История сообщений" })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Чат", exact: true }).click();
+    await page.getByRole("button", { name: "Другие действия" }).click();
+    await page.getByRole("menuitem", { name: "Чат" }).click();
     await page.getByRole("button", { name: "Настройки" }).click();
     const again = page.getByRole("dialog", { name: "Настройки" });
     await again.getByLabel("Запускать в режиме Сфера").uncheck();
@@ -57,7 +58,8 @@ test.describe("S08/S15 настройки и F05 вложения", () => {
   test("F06-H2 выделение области экрана", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
-    await page.getByRole("button", { name: "Выделить область" }).click();
+    await page.getByRole("button", { name: "Добавить" }).click();
+    await page.getByRole("menuitem", { name: "Область экрана" }).click();
     const dialog = page.getByRole("dialog", { name: "Выделение области экрана" });
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: "Отмена" }).click();

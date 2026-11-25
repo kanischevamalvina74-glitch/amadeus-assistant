@@ -38,9 +38,11 @@ test.describe("F04 текстовая беседа с контекстом", () 
   test("S02-H1 режим фокуса убирает боковые панели", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Ядро в сети")).toBeVisible();
-    await page.getByRole("button", { name: "Фокус" }).click();
+    await page.getByRole("button", { name: "Другие действия" }).click();
+    await page.getByRole("menuitem", { name: "Фокус" }).click();
     await expect(page.getByRole("complementary", { name: "История диалогов" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Выйти" }).click();
+    await page.getByRole("button", { name: "Другие действия" }).click();
+    await page.getByRole("menuitem", { name: "Выйти из фокуса" }).click();
     await expect(page.getByRole("complementary", { name: "История диалогов" })).toBeVisible();
   });
 
@@ -62,7 +64,8 @@ test.describe("F04 текстовая беседа с контекстом", () 
     await expect(page.locator(".hud-scene")).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Сообщение" })).toBeVisible();
     await expect(page.locator(".sphere-subtitle")).toBeVisible();
-    await page.getByRole("button", { name: "Чат", exact: true }).click();
+    await page.getByRole("button", { name: "Другие действия" }).click();
+    await page.getByRole("menuitem", { name: "Чат" }).click();
     await expect(page.getByRole("log", { name: "История сообщений" })).toBeVisible();
   });
 
@@ -110,16 +113,15 @@ test.describe("F04 текстовая беседа с контекстом", () 
     assertNoErrors(errors);
   });
 
-  test("F04-E4 ошибка 404 показывает причину под сферой", async ({ page }) => {
+  test("F04-E4 ошибка 404 показывает причину и решение в чате", async ({ page }) => {
     await page.route("**/api/v1/chat/stream*", (route) => route.fulfill({ status: 404, body: "model not found" }));
     await page.goto("/");
     await expect(page.getByText("Ядро в сети")).toBeVisible();
     const input = page.getByRole("textbox", { name: "Сообщение" });
     await input.fill("проверка ошибки");
     await input.press("Enter");
-    await page.locator(".hud-status-button").first().click();
-    const reason = page.locator(".hud-error");
-    await expect(reason).toContainText("Модель не скачана");
+    const reason = page.locator(".model-error-card");
+    await expect(reason).toBeVisible();
     await expect(reason.getByRole("button", { name: "Скачать" })).toBeVisible();
   });
 

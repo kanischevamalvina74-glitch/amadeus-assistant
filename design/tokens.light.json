@@ -1,54 +1,153 @@
 {
-  "_about": "Светлая тема — «дневной HUD». Тот же набор ролей, что в tokens.json. Проверка: python contrast.py replica/design/tokens.light.json",
+  "_about": "Светлая тема «Партитура»: тёплая бумага, гравюра, мягкие тени вместо свечения.",
   "color": {
-    "bg": "#EEF4F8",
-    "surface": "#FFFFFF",
-    "surface-2": "#E6EEF5",
-    "surface-3": "#D8E4EE",
-    "border": "#C6D5E1",
-    "border-input": "#6B8199",
-    "text": "#081520",
-    "text-muted": "#42586B",
-    "text-faint": "#53687C",
-    "accent": "#0A6B82",
-    "accent-strong": "#07505F",
-    "accent-dim": "#8FC7D6",
+    "bg": "#F4F0E6",
+    "surface": "#FBF8F1",
+    "surface-2": "#F1ECDF",
+    "surface-3": "#E8E1D2",
+    "border": "#D8CFBE",
+    "border-input": "#706657",
+    "text": "#1A1814",
+    "text-muted": "#5A5449",
+    "text-faint": "#696253",
+    "accent": "#0B6E80",
+    "accent-strong": "#084F5C",
+    "accent-dim": "#8FBAC4",
     "on-accent": "#FFFFFF",
-    "danger": "#B3261E",
-    "danger-strong": "#8C1D17",
-    "success": "#106B45",
-    "warning": "#7A5200",
-    "hud-grid": "#C9DCE8",
-    "hud-ring": "#7FB4C6",
-    "hud-amber": "#A86400",
-    "focus": "#0A6B82"
+    "brass": "#8A6420",
+    "brass-bright": "#7A5718",
+    "brass-dark": "#C4A874",
+    "on-danger": "#FFFFFF",
+    "mask": "#000000",
+    "danger": "#B84A40",
+    "danger-strong": "#8E362E",
+    "success": "#2F7A52",
+    "warning": "#8A5D10",
+    "hud-grid": "#E3DBC9",
+    "hud-ring": "#8FBAC4",
+    "hud-amber": "#8A6420",
+    "focus": "#0B6E80"
   },
   "pairs": [
-    ["text", "bg"],
-    ["text", "surface"],
-    ["text", "surface-2"],
-    ["text", "surface-3"],
-    ["text-muted", "bg"],
-    ["text-muted", "surface"],
-    ["text-muted", "surface-2"],
-    ["text-muted", "surface-3"],
-    ["text-faint", "bg"],
-    ["text-faint", "surface"],
-    ["on-accent", "accent"],
-    ["on-accent", "accent-strong"],
-    ["accent", "bg"],
-    ["accent", "surface"],
-    ["accent", "surface-2"],
-    ["danger", "bg"],
-    ["danger", "surface"],
-    ["success", "bg"],
-    ["success", "surface"],
-    ["warning", "bg"],
-    ["warning", "surface"],
-    ["border-input", "bg", "ui"],
-    ["border-input", "surface", "ui"],
-    ["border-input", "surface-2", "ui"],
-    ["focus", "bg", "ui"],
-    ["focus", "surface", "ui"]
+    [
+      "text",
+      "bg"
+    ],
+    [
+      "text",
+      "surface"
+    ],
+    [
+      "text",
+      "surface-2"
+    ],
+    [
+      "text",
+      "surface-3"
+    ],
+    [
+      "text-muted",
+      "bg"
+    ],
+    [
+      "text-muted",
+      "surface"
+    ],
+    [
+      "text-muted",
+      "surface-2"
+    ],
+    [
+      "text-faint",
+      "bg"
+    ],
+    [
+      "text-faint",
+      "surface"
+    ],
+    [
+      "brass",
+      "bg"
+    ],
+    [
+      "brass",
+      "surface"
+    ],
+    [
+      "brass-bright",
+      "bg"
+    ],
+    [
+      "brass-bright",
+      "surface"
+    ],
+    [
+      "on-accent",
+      "accent"
+    ],
+    [
+      "on-accent",
+      "accent-strong"
+    ],
+    [
+      "on-danger",
+      "danger"
+    ],
+    [
+      "accent",
+      "bg"
+    ],
+    [
+      "accent",
+      "surface"
+    ],
+    [
+      "accent",
+      "surface-2"
+    ],
+    [
+      "danger",
+      "bg"
+    ],
+    [
+      "danger",
+      "surface"
+    ],
+    [
+      "success",
+      "bg"
+    ],
+    [
+      "success",
+      "surface"
+    ],
+    [
+      "warning",
+      "bg"
+    ],
+    [
+      "warning",
+      "surface"
+    ],
+    [
+      "border-input",
+      "bg",
+      "ui"
+    ],
+    [
+      "border-input",
+      "surface",
+      "ui"
+    ],
+    [
+      "focus",
+      "bg",
+      "ui"
+    ],
+    [
+      "focus",
+      "surface",
+      "ui"
+    ]
   ]
 }

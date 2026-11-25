@@ -9,17 +9,17 @@
   --color-surface-2: #141518;
   --color-surface-3: #1B1C20;
   --color-border: #24252A;
-  --color-border-input: #3A3C43;
+  --color-border-input: #5C6068;
   --color-text: #EEEAE1;
   --color-text-muted: #A8A397;
-  --color-text-faint: #7D786E;
+  --color-text-faint: #868176;
 
   /* Циан — машина, латунь — голос Амадеуса. */
   --color-accent: #4FD8F0;
   --color-accent-strong: #9BE9F7;
   --color-accent-dim: #2A7C8C;
   --color-on-accent: #071014;
-  --color-on-danger: #FFFFFF;
+  --color-on-danger: #1A0806;
   --color-mask: #000000;
   --color-brass: #D9B26A;
   --color-brass-bright: #F0D49A;
@@ -134,7 +134,7 @@
   --color-surface-2: #F1ECDF;
   --color-surface-3: #E8E1D2;
   --color-border: #D8CFBE;
-  --color-border-input: #A89E8C;
+  --color-border-input: #706657;
   --color-text: #1A1814;
   --color-text-muted: #5A5449;
   --color-text-faint: #696253;
@@ -144,12 +144,12 @@
   --color-on-accent: #FFFFFF;
   --color-on-danger: #FFFFFF;
   --color-brass: #8A6420;
-  --color-brass-bright: #A57C2E;
+  --color-brass-bright: #7A5718;
   --color-brass-dark: #C4A874;
   --color-danger: #B84A40;
   --color-danger-strong: #8E362E;
   --color-success: #2F7A52;
-  --color-warning: #9A6B12;
+  --color-warning: #8A5D10;
   --color-hud-grid: #E3DBC9;
   --color-hud-ring: #8FBAC4;
   --color-hud-amber: var(--color-brass);

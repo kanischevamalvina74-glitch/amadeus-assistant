@@ -370,6 +370,17 @@
   text-transform: uppercase;
   color: var(--color-text-faint);
 }
+.hud__voice-ring { transform-origin: 50% 50%; opacity: 0; transition: transform 90ms linear, opacity 120ms linear; }
+.hud[data-state="listening"] .hud__voice-ring {
+  opacity: calc(.12 + var(--hud-level, 0) * .55);
+  transform: scale(calc(1 + var(--hud-level, 0) * .35));
+}
+.hud[data-state="listening"] .hud__glow,
+.hud[data-state="listening"] .hud__pulse {
+  transform-origin: 50% 50%;
+  transform: scale(calc(1 + var(--hud-level, 0) * .2));
+  transition: transform 90ms linear;
+}
 .hud[data-state="listening"] .hud__label { color: var(--color-accent); }
 .hud[data-state="thinking"] .hud__label,
 .hud[data-state="speaking"] .hud__label { color: var(--color-brass); }

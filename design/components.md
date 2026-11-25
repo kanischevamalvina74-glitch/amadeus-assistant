@@ -323,3 +323,49 @@
 - [ ] Проверено на 100 % и 200 % масштаба, RU и EN.
 - [ ] `prefers-reduced-motion` не ломает смысл.
 - [ ] Скриншот обеих тем приложен к макету.
+
+
+---
+
+## Плотный чат (ветка `redesign/dense-chat`)
+
+AppHeader
+  variants  default, sphere
+  sizes     height 40px, hairline 1px (brass-dark)
+  states    default; hover на иконках; focus-visible 2px ring accent
+  tokens    bg-surface, text, font-display 20px italic, font-mono 10px только для статуса и чипа модели
+  a11y      role=banner, настоящие <button>, статус дублируется role=status для скринридера
+  used on   все экраны
+
+StatusOrb
+  states    idle/listening/thinking/speaking/error/muted
+  tokens    цвет состояния: accent (машина), brass (голос), danger (ошибка); --hud-level 0..1
+  motion    при listening радиус и свечение масштабируются по уровню микрофона; reduced-motion отключает
+  a11y      tooltip с процессором/памятью/сеансом/моделью
+
+Message
+  variants  user (мягкая плашка surface-2), assistant (текст с латунной чертой)
+  sizes     внутри 6px, между репликами 16px, между репликами одного автора 6px, контент до 760px
+  states    default, hover (время/автор), streaming, error
+  tokens    border-left 2px brass, radius md, text 15/24 Inter
+  a11y      article с aria-label «Сообщение: вы/ядро», error имеет role=alert
+
+Composer
+  variants  default, attachments, busy
+  sizes     height 44px, controls 28px
+  states    default, focus-within, disabled, error вложения
+  tokens    bg-surface, border-input, accent на отправке
+  a11y      textbox aria-label «Сообщение», Enter отправляет, Shift+Enter переносит, ↑ повторяет последнее
+  used on   S02, S04, S05
+
+AttachMenu
+  variants  файл, снимок экрана, область экрана
+  states    closed, open, focus
+  tokens    bg-surface, shadow-pop, radius sm
+  a11y      role=menu/menuitem, aria-expanded на кнопке «+»
+
+Sphere (HUDCore / MiniCore)
+  states    idle, listening, thinking, speaking, error, muted, sphere
+  tokens    --reactor-core/mid/rim, --hud-level; объём дают радиальный и линейный градиенты, блик и мягкая тень
+  motion    орбиты 46s в покое, ускорение при thinking, пульс по голосу при listening, стоп при error
+  a11y      role=img с подписью состояния; reduced-motion — только цвет

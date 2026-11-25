@@ -74,7 +74,10 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
       playCue("answer");
     }
     if (event.event === "barge_in") setState("listening");
-    if (event.event === "level" && typeof event.level === "number") setLevel(event.level);
+    if (event.event === "level" && typeof event.level === "number") {
+      setLevel(event.level);
+      window.dispatchEvent(new CustomEvent("amadeus.voice.level", { detail: event.level }));
+    }
     if (event.event === "screenshot") {
       setState("speaking");
       setCaption("Снимок экрана готов");
