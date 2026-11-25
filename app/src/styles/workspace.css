@@ -652,7 +652,7 @@
 /* Узкий экран: боковые панели уезжают, центр остаётся читаемым. */
 .shell[data-panel="closed"] { grid-template-columns: var(--layout-rail) var(--layout-sidebar) 1fr; }
 .status-chip { text-transform: none; }
-.composer .input:focus { outline: 1px solid var(--color-accent-dim); outline-offset: 0; box-shadow: none; }
+.composer .input:focus { outline: none; box-shadow: none; }
 .composer:focus-within { border-color: var(--color-border-input); }
 .regenerate {
   display: block; margin: 4px 0 8px 14px;
@@ -737,3 +737,98 @@
   background: color-mix(in srgb, var(--color-surface) 18%, transparent);
 }
 .app[data-sphere="true"] .hud { transform: scale(1.18); }
+
+
+/* ---------- правки после ревью: компактный HUD, меню шапки, Сфера ---------- */
+.head-actions { display: flex; align-items: center; gap: 10px; position: relative; }
+.head-more { display: none; width: 32px; height: 28px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-2); color: var(--color-text-muted); cursor: pointer; }
+.head-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
+  display: grid; min-width: 170px; padding: 4px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); box-shadow: var(--shadow-card);
+}
+.head-menu button {
+  border: 0; background: none; color: var(--color-text-muted);
+  text-align: left; padding: 7px 10px; font-size: 12px; cursor: pointer; border-radius: var(--radius-xs);
+}
+.head-menu button:hover { background: var(--color-surface-2); color: var(--color-text); }
+.stage-head .model--muted { opacity: .45; }
+.statusbar .dot--warn { background: var(--color-hud-amber); box-shadow: 0 0 8px var(--color-hud-amber); }
+
+/* Когда диалог идёт, сцена становится полосой и не съедает экран. */
+.stage[data-hud="compact"] .hud-scene { height: 120px; }
+.stage[data-hud="compact"] .hud { transform: scale(.42); }
+.stage[data-hud="compact"] .hud-meta,
+.stage[data-hud="compact"] .tool-satellites,
+.stage[data-hud="compact"] .scan { display: none; }
+.stage[data-hud="compact"] .hud-caption { bottom: 6px; }
+.hud-error {
+  position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%);
+  z-index: 4; display: flex; align-items: center; gap: 8px; white-space: nowrap;
+  color: var(--color-text-muted); font-size: 11px;
+}
+.hud-error button {
+  border: 1px solid var(--color-warning); border-radius: var(--radius-xs);
+  background: none; color: var(--color-warning); padding: 2px 8px; font-size: 10px; cursor: pointer;
+}
+.hud-error button:hover { background: var(--color-surface-2); }
+
+/* Режим «Сфера»: рамки нет, ядро крупное, под ним субтитры и тонкий ввод. */
+.app[data-sphere="true"] .chat { display: none; }
+.app[data-sphere="true"] .composer-wrap { display: block; }
+.app[data-sphere="true"] .quick-prompts { display: none; }
+.app[data-sphere="true"] .hud-scene {
+  border: 0; box-shadow: none; background: transparent; margin: 0 20px;
+  height: auto; flex: 1 1 auto; min-height: 0; overflow: visible;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+}
+.app[data-sphere="true"] .hud-scene::before,
+.app[data-sphere="true"] .hud-scene::after,
+.app[data-sphere="true"] .scan,
+.app[data-sphere="true"] .hud-meta,
+.app[data-sphere="true"] .tool-satellites { display: none; }
+.app[data-sphere="true"] .hud { transform: none; }
+.app[data-sphere="true"] .hud-caption,
+.app[data-sphere="true"] .hud-error { position: static; transform: none; }
+.sphere-subtitle { display: none; }
+.app[data-sphere="true"] .sphere-subtitle {
+  display: block; max-width: 560px; text-align: center;
+  color: var(--color-text-muted); font-size: 13px; line-height: 1.5;
+}
+.app[data-sphere="true"] .sphere-subtitle b { color: var(--color-accent); font-weight: 600; }
+.app[data-sphere="true"] .composer-wrap { max-width: 620px; padding: 4px 20px 18px; }
+.app[data-sphere="true"] .composer {
+  border: 0; box-shadow: none; background: transparent; padding: 4px 0;
+}
+.app[data-sphere="true"] .composer:focus-within { border: 0; box-shadow: none; }
+.app[data-sphere="true"] .composer .input {
+  border-bottom: 1px solid var(--color-border-input); border-radius: 0;
+  text-align: center; font-size: 14px;
+}
+.app[data-sphere="true"] .composer .send { background: none; color: var(--color-accent); }
+
+/* Узкое окно: рельс остаётся, история выезжает поверх сцены. */
+@media (max-width: 960px) {
+  .shell, .shell[data-panel="closed"], .app[data-sphere="true"] .shell {
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+  }
+  .shell { position: relative; }
+  .rail { display: flex !important; width: 52px; }
+  .sidebar {
+    position: absolute; left: 52px; top: 0; bottom: 0; z-index: 30;
+    width: min(320px, calc(100vw - 52px));
+    transform: translateX(-110%); transition: transform var(--motion-base) var(--ease);
+    box-shadow: 12px 0 30px rgba(0,0,0,.45);
+  }
+  .sidebar[data-open="true"] { transform: none; }
+  .stage-head .collapse-btn, .stage-head .hud-label { display: none; }
+  .head-more { display: grid; place-items: center; }
+  .hud-scene { margin: 0 10px; }
+  .stage[data-hud="full"] .hud-scene { height: 160px; min-height: 160px; }
+  .stage[data-hud="full"] .hud { transform: scale(.55); }
+  .stage[data-hud="full"] .hud-meta, .stage[data-hud="full"] .tool-satellites { display: none; }
+  .composer-wrap, .approve-cards { padding-left: 10px; padding-right: 10px; }
+  .statusbar { flex-wrap: wrap; height: auto; min-height: var(--layout-status); row-gap: 2px; }
+  .app[data-sphere="true"] .hud-scene { margin: 0 10px; }
+}

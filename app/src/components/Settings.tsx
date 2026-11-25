@@ -12,6 +12,7 @@ import {
 } from "../lib/api";
 import { t as translate, type Locale } from "../lib/i18n";
 import { setSoundEnabled, soundEnabled } from "../lib/sound";
+import { loadStartSphere, saveStartSphere } from "../lib/preferences";
 import "./control.css";
 import "./settings.css";
 
@@ -68,6 +69,7 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
   });
   const [autostart, setAutostart] = useState(false);
   const [sound, setSound] = useState(soundEnabled);
+  const [startSphere, setStartSphere] = useState(loadStartSphere);
   const [settingsQuery, setSettingsQuery] = useState("");
   const [settingsIndex, setSettingsIndex] = useState<Array<{ key: string; title: string; category: string }>>([]);
   const [exportText, setExportText] = useState("");
@@ -322,6 +324,18 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
                   onChange={(event) => {
                     setSound(event.target.checked);
                     setSoundEnabled(event.target.checked);
+                  }}
+                />
+              </label>
+              <label className="center-inline">
+                Запускать в режиме «Сфера»
+                <input
+                  type="checkbox"
+                  checked={startSphere}
+                  aria-label="Запускать в режиме Сфера"
+                  onChange={(event) => {
+                    setStartSphere(event.target.checked);
+                    saveStartSphere(event.target.checked);
                   }}
                 />
               </label>

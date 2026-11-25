@@ -12,6 +12,7 @@ import {
   type ActionItem,
 } from "../lib/api";
 import { useLocale } from "../lib/i18n";
+import { loadStartSphere, saveStartSphere } from "../lib/preferences";
 
 type Metrics = {
   cpu: number;
@@ -350,7 +351,8 @@ export function Workspace({
   const [telemetryOpen, setTelemetryOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
-  const [sphereMode, setSphereMode] = useState(false);
+  const [sphereMode, setSphereMode] = useState(loadStartSphere);
+  const [headMenuOpen, setHeadMenuOpen] = useState(false);
   const [pendingActions, setPendingActions] = useState<ActionItem[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -499,6 +501,17 @@ export function Workspace({
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const lastError = [...messages].reverse().find((item) => item.error);
+  const modelMissing = Boolean(
+    lastError && (lastError.errorKind === "model-missing" || lastError.text.includes("404")),
+  );
+  const lastAnswer = [...messages].reverse().find((item) => item.role === "assistant" && !item.error && item.text.trim());
+  const toggleSphere = () =>
+    setSphereMode((value) => {
+      saveStartSphere(!value);
+      return !value;
+    });
+
   return (
     <div className="app" data-focus={focusMode ? "true" : undefined} data-sphere={sphereMode ? "true" : undefined}>
       <div className="statusbar" role="banner">
@@ -558,7 +571,7 @@ export function Workspace({
         </nav>
 
         {historyOpen && !focusMode && (
-        <aside className="sidebar" aria-label="История диалогов">
+        <aside className="sidebar" aria-label="История диалогов" data-open={historyOpen ? "true" : undefined}>
           <div className="sidebar-head">
             <h2>История</h2>
             <span className="count">{threads ? threads.length : 128}</span>
@@ -594,28 +607,54 @@ export function Workspace({
         </aside>
         )}
 
-        <main className="stage">
+        <main className="stage" data-hud={messages.length > 0 ? "compact" : "full"}>
           <div className="stage-head">
             <h1 className="name">Амадеус</h1>
-            <span className="model" title={OLLAMA_MODEL}>
+            <span className={`model ${model.hasModel ? "" : "model--muted"}`} title={OLLAMA_MODEL}>
               {OLLAMA_LABEL}
             </span>
             <span className="grow" />
             <span className="hud-label">
               {String(Math.floor(elapsed / 3600)).padStart(2, "0")}:{String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}
             </span>
-            <button className="collapse-btn" onClick={() => setSphereMode((value) => !value)} title="Сфера: только ядро без чата">
-              {sphereMode ? "Чат" : "Сфера"}
-            </button>
-            <button className="collapse-btn" onClick={() => setFocusMode((value) => !value)} title="Фокус: только сфера, чат и ввод">
-              {focusMode ? "Выйти" : "Фокус"}
-            </button>
-            <button className="collapse-btn" onClick={onOpenWorkshop} title="Команды, Telegram, аватар">
-              Мастерская
-            </button>
-            <button className="collapse-btn" onClick={onCollapse} title="Свернуть в ядро — дальше голосом">
-              Свернуть
-            </button>
+            <div className="head-actions">
+              <button className="collapse-btn" onClick={toggleSphere} title="Сфера: только ядро без чата (запоминается как режим запуска)">
+                {sphereMode ? "Чат" : "Сфера"}
+              </button>
+              <button className="collapse-btn" onClick={() => setFocusMode((value) => !value)} title="Фокус: только сфера, чат и ввод">
+                {focusMode ? "Выйти" : "Фокус"}
+              </button>
+              <button className="collapse-btn" onClick={onOpenWorkshop} title="Команды, Telegram, аватар">
+                Мастерская
+              </button>
+              <button className="collapse-btn" onClick={onCollapse} title="Свернуть в ядро — дальше голосом">
+                Свернуть
+              </button>
+              <button
+                className="head-more"
+                aria-label="Другие действия"
+                aria-expanded={headMenuOpen}
+                onClick={() => setHeadMenuOpen((value) => !value)}
+              >
+                ⋯
+              </button>
+              {headMenuOpen && (
+                <div className="head-menu" role="menu">
+                  <button role="menuitem" onClick={() => { toggleSphere(); setHeadMenuOpen(false); }}>
+                    {sphereMode ? "Чат" : "Сфера"}
+                  </button>
+                  <button role="menuitem" onClick={() => { setFocusMode((value) => !value); setHeadMenuOpen(false); }}>
+                    {focusMode ? "Выйти из фокуса" : "Фокус"}
+                  </button>
+                  <button role="menuitem" onClick={() => { onOpenWorkshop(); setHeadMenuOpen(false); }}>
+                    Мастерская
+                  </button>
+                  <button role="menuitem" onClick={() => { onCollapse(); setHeadMenuOpen(false); }}>
+                    Свернуть
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="hud-scene" data-state={state}>
@@ -659,7 +698,7 @@ export function Workspace({
               </div>
             </div>
 
-            <HUDCore state={state} size={248} />
+            <HUDCore state={state} size={sphereMode ? 380 : 248} />
 
             <div className="tool-satellites" aria-hidden="true" title="Инструменты: память, поиск, экран, проект">
               <span className="satellite satellite--a"><Icon name="history" /></span>
@@ -667,6 +706,27 @@ export function Workspace({
               <span className="satellite satellite--c"><Icon name="folder" /></span>
               <span className="satellite satellite--d"><Icon name="terminal" /></span>
             </div>
+
+            {sphereMode && (
+              <div className="sphere-subtitle" aria-live="polite">
+                {lastAnswer ? (
+                  <>
+                    <b>Амадеус:</b> {lastAnswer.text}
+                  </>
+                ) : (
+                  "Готов. Скажите «Амадеус» или введите сообщение ниже."
+                )}
+              </div>
+            )}
+
+            {state === "error" && lastError && (
+              <div className="hud-error" role="alert">
+                <span>{modelMissing ? "Модель не скачана" : "Не удалось получить ответ"}</span>
+                <button type="button" onClick={onOpenSettings}>
+                  {modelMissing ? "Скачать" : "Настройки"}
+                </button>
+              </div>
+            )}
 
             <div className="hud-caption" role="status" aria-label="Состояние ядра">
               <span className="live">● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}</span>

@@ -13,7 +13,7 @@ const MESSAGES: Messages = {
   "status.storage": { ru: "SQLite · локальное хранилище", en: "SQLite · local storage" },
   "status.demo": { ru: "демо-режим без ядра", en: "demo mode without core" },
   "status.russian": { ru: "русский", en: "Russian" },
-  "status.cpu": { ru: "процессор", en: "CPU" },
+  "status.cpu": { ru: "Процессор", en: "CPU" },
   "status.memory": { ru: "память", en: "Memory" },
   "status.temp": { ru: "темп.", en: "Temp." },
   "theme.toggle": { ru: "Светлая", en: "Light" },

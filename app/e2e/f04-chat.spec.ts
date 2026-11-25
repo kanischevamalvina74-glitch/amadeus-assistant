@@ -44,12 +44,24 @@ test.describe("F04 текстовая беседа с контекстом", () 
     await expect(page.getByRole("complementary", { name: "История диалогов" })).toBeVisible();
   });
 
+  test("S01-H4 узкое окно сохраняет поле ввода и меню шапки", async ({ page }) => {
+    await page.setViewportSize({ width: 820, height: 900 });
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    const box = await page.locator(".composer").boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(600);
+    await page.getByRole("button", { name: "Другие действия" }).click();
+    await expect(page.getByRole("menuitem", { name: "Сфера" })).toBeVisible();
+  });
+
   test("S02-H2 режим «Сфера» оставляет только ядро", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Ядро в сети")).toBeVisible();
     await page.getByRole("button", { name: "Сфера", exact: true }).click();
     await expect(page.getByRole("log", { name: "История сообщений" })).toHaveCount(0);
     await expect(page.locator(".hud-scene")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Сообщение" })).toBeVisible();
+    await expect(page.locator(".sphere-subtitle")).toBeVisible();
     await page.getByRole("button", { name: "Чат", exact: true }).click();
     await expect(page.getByRole("log", { name: "История сообщений" })).toBeVisible();
   });
@@ -94,6 +106,18 @@ test.describe("F04 текстовая беседа с контекстом", () 
       page.getByRole("article", { name: "Сообщение: вы" }).filter({ hasText: uniqueText }),
     ).toHaveCount(1);
     assertNoErrors(errors);
+  });
+
+  test("F04-E4 ошибка 404 показывает причину под сферой", async ({ page }) => {
+    await page.route("**/api/v1/chat/stream*", (route) => route.fulfill({ status: 404, body: "model not found" }));
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    const input = page.getByRole("textbox", { name: "Сообщение" });
+    await input.fill("проверка ошибки");
+    await input.press("Enter");
+    const reason = page.locator(".hud-error");
+    await expect(reason).toContainText("Модель не скачана");
+    await expect(reason.getByRole("button", { name: "Скачать" })).toBeVisible();
   });
 
   test("F04-E2 пустой ввод ничего не отправляет", async ({ page }) => {

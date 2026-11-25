@@ -44,8 +44,8 @@ fn backend_port_open() -> bool {
         .is_some()
 }
 
-/// Поднимает Python-sidecar с ядром. В dev-режиме исходники рядом с src-tauri,
-/// в релизе — в resources (см. tauri.conf.json).
+/// Поднимает ядро: в релизе — собранный externalBin, в dev — системный Python
+/// с исходниками рядом с src-tauri (см. tauri.conf.json).
 #[tauri::command]
 fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Result<String, String> {
     if backend_port_open() {
@@ -56,13 +56,45 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
     let db_path = data_dir.join("data/amadeus.db");
 
     // В релизе ядро — отдельный exe (externalBin), системный Python не нужен.
-    if let Ok(sidecar) = app.shell().sidecar("amadeus-core") {
-        let (_rx, child) = sidecar
-            .env("AMADEUS_DB_PATH", &db_path)
-            .env("AMADEUS_SECRET_STORE", "keyring")
-            .env("AMADEUS_PORT", "8787")
-            .spawn()
-            .map_err(|e| format!("не удалось запустить ядро: {e}"))?;
+    // Если exe отсутствует или не запустился, тихо уходим в dev-fallback.
+    let spawned = app
+        .shell()
+        .sidecar("amadeus-core")
+        .ok()
+        .and_then(|sidecar| {
+            sidecar
+                .env("AMADEUS_DB_PATH", &db_path)
+                .env("AMADEUS_SECRET_STORE", "keyring")
+                .env("AMADEUS_PORT", "8787")
+                .spawn()
+                .ok()
+        });
+    if let Some((mut rx, child)) = spawned {
+        // Канал вывода нельзя выбрасывать: ядро может заблокироваться на записи в stdout.
+        let log_path = data_dir.join("logs/core.log");
+        if let Some(parent) = log_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        tauri::async_runtime::spawn(async move {
+            use tauri_plugin_shell::process::CommandEvent;
+            while let Some(event) = rx.recv().await {
+                let line = match event {
+                    CommandEvent::Stdout(bytes) => format!("[out] {}", String::from_utf8_lossy(&bytes)),
+                    CommandEvent::Stderr(bytes) => format!("[err] {}", String::from_utf8_lossy(&bytes)),
+                    CommandEvent::Error(message) => format!("[error] {message}"),
+                    CommandEvent::Terminated(_) => break,
+                    _ => continue,
+                };
+                if let Ok(mut file) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&log_path)
+                {
+                    use std::io::Write;
+                    let _ = writeln!(file, "{}", line.trim_end());
+                }
+            }
+        });
         *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Sidecar(child));
         return Ok("ядро запущено из externalBin".into());
     }

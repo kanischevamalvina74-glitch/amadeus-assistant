@@ -36,6 +36,24 @@ test.describe("S08/S15 настройки и F05 вложения", () => {
     await expect(page.evaluate(() => localStorage.getItem("amadeus.sound"))).resolves.toBe("on");
   });
 
+  test("S08-H6 запуск в режиме «Сфера» сохраняется", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    await page.getByRole("button", { name: "Настройки" }).click();
+    const dialog = page.getByRole("dialog", { name: "Настройки" });
+    await dialog.getByLabel("Запускать в режиме Сфера").check();
+    await dialog.getByRole("button", { name: "Закрыть настройки" }).click();
+
+    await page.reload();
+    await expect(page.locator(".hud-scene")).toBeVisible();
+    await expect(page.getByRole("log", { name: "История сообщений" })).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Чат", exact: true }).click();
+    await page.getByRole("button", { name: "Настройки" }).click();
+    const again = page.getByRole("dialog", { name: "Настройки" });
+    await again.getByLabel("Запускать в режиме Сфера").uncheck();
+  });
+
   test("F06-H2 выделение области экрана", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
