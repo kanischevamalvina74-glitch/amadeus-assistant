@@ -28,6 +28,24 @@
   bottom: 28px;
   z-index: 20;
 }
+/* Кольцо «парит» вокруг неподвижной кнопки: клик по сфере остаётся стабильным. */
+.mini-orb::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  opacity: .35;
+  pointer-events: none;
+  animation: orb-float 6s ease-in-out infinite;
+}
+@keyframes orb-float {
+  0%, 100% { transform: translateY(0); opacity: .2; }
+  50% { transform: translateY(-7px); opacity: .45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-orb::before { animation: none; }
+}
 
 .mini-caption {
   position: fixed;
@@ -64,6 +82,30 @@
 .mini-caption__dot--thinking { background: var(--color-hud-amber); box-shadow: 0 0 8px var(--color-hud-amber); }
 .mini-caption__dot--speaking { background: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
 .mini-caption__dot--error { background: var(--color-danger); }
+
+.mini-subtitles {
+  position: fixed;
+  right: 124px;
+  bottom: 92px;
+  width: min(420px, 52vw);
+  display: grid;
+  gap: 5px;
+  z-index: 15;
+  pointer-events: none;
+}
+.mini-subtitle {
+  padding: 7px 11px;
+  border-left: 2px solid var(--color-accent-dim);
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--color-bg) 86%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: var(--shadow-card);
+}
+.mini-subtitle b { color: var(--color-accent); font-weight: 600; }
+.mini-subtitle--live { border-left-color: var(--color-hud-amber); }
 
 .mini-hint {
   position: fixed;
@@ -121,4 +163,5 @@
 
 @media (max-width: 760px) {
   .mini-caption { right: 20px; bottom: 110px; max-width: calc(100vw - 40px); }
+  .mini-subtitles { right: 20px; bottom: 158px; width: calc(100vw - 40px); }
 }

@@ -44,6 +44,16 @@ test.describe("F04 текстовая беседа с контекстом", () 
     await expect(page.getByRole("complementary", { name: "История диалогов" })).toBeVisible();
   });
 
+  test("S02-H2 режим «Сфера» оставляет только ядро", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    await page.getByRole("button", { name: "Сфера", exact: true }).click();
+    await expect(page.getByRole("log", { name: "История сообщений" })).toHaveCount(0);
+    await expect(page.locator(".hud-scene")).toBeVisible();
+    await page.getByRole("button", { name: "Чат", exact: true }).click();
+    await expect(page.getByRole("log", { name: "История сообщений" })).toBeVisible();
+  });
+
   test("F04-H5 подсказки и редактирование последнего сообщения", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Ядро в сети")).toBeVisible();

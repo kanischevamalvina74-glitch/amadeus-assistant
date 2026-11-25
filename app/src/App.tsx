@@ -7,6 +7,7 @@ import { ControlCenter } from "./components/ControlCenter";
 import { Settings } from "./components/Settings";
 import { Setup } from "./components/Setup";
 import { initialMessages, nowTime, type ChatMessage, type Conversation } from "./data/mock";
+import { playCue } from "./lib/sound";
 import {
   api,
   control,
@@ -83,6 +84,11 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    if (state === "speaking") playCue("answer");
+    if (state === "error") playCue("error");
+  }, [state]);
 
   useEffect(() => {
     let cancelled = false;

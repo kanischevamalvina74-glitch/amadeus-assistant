@@ -350,6 +350,7 @@ export function Workspace({
   const [telemetryOpen, setTelemetryOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
+  const [sphereMode, setSphereMode] = useState(false);
   const [pendingActions, setPendingActions] = useState<ActionItem[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -499,7 +500,7 @@ export function Workspace({
   };
 
   return (
-    <div className="app" data-focus={focusMode ? "true" : undefined}>
+    <div className="app" data-focus={focusMode ? "true" : undefined} data-sphere={sphereMode ? "true" : undefined}>
       <div className="statusbar" role="banner">
         <span className={`dot ${!backendOnline ? "dot--off" : model.hasModel ? "" : "dot--warn"}`} />
         <strong>{!backendOnline ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}</strong>
@@ -603,6 +604,9 @@ export function Workspace({
             <span className="hud-label">
               {String(Math.floor(elapsed / 3600)).padStart(2, "0")}:{String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}
             </span>
+            <button className="collapse-btn" onClick={() => setSphereMode((value) => !value)} title="Сфера: только ядро без чата">
+              {sphereMode ? "Чат" : "Сфера"}
+            </button>
             <button className="collapse-btn" onClick={() => setFocusMode((value) => !value)} title="Фокус: только сфера, чат и ввод">
               {focusMode ? "Выйти" : "Фокус"}
             </button>
@@ -656,6 +660,13 @@ export function Workspace({
             </div>
 
             <HUDCore state={state} size={248} />
+
+            <div className="tool-satellites" aria-hidden="true" title="Инструменты: память, поиск, экран, проект">
+              <span className="satellite satellite--a"><Icon name="history" /></span>
+              <span className="satellite satellite--b"><Icon name="plugins" /></span>
+              <span className="satellite satellite--c"><Icon name="folder" /></span>
+              <span className="satellite satellite--d"><Icon name="terminal" /></span>
+            </div>
 
             <div className="hud-caption" role="status" aria-label="Состояние ядра">
               <span className="live">● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}</span>

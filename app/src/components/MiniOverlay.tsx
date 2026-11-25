@@ -6,6 +6,7 @@ import { useLocale } from "../lib/i18n";
 import { useWakeWord } from "../hooks/useWakeWord";
 import { useWakeSocket } from "../hooks/useWakeSocket";
 import { useVoiceSocket } from "../hooks/useVoiceSocket";
+import { playCue } from "../lib/sound";
 import "./mini.css";
 
 type Props = {
@@ -30,7 +31,15 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
   const [caption, setCaption] = useState(tr("mini.wake"));
   const [level, setLevel] = useState(0);
   const [hintVisible, setHintVisible] = useState(true);
+  const [subtitles, setSubtitles] = useState<Array<{ speaker: "Вы" | "Амадеус"; text: string }>>([]);
+  const [liveAnswer, setLiveAnswer] = useState("");
+  const answerRef = useRef("");
   const timers = useRef<number[]>([]);
+
+  const pushSubtitle = (speaker: "Вы" | "Амадеус", text: string) => {
+    if (!text.trim()) return;
+    setSubtitles((prev) => [...prev, { speaker, text }].slice(-2));
+  };
 
   const clearTimers = () => {
     timers.current.forEach((id) => window.clearTimeout(id));
@@ -48,10 +57,21 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     if (event.event === "transcript" && event.text) {
       setState("thinking");
       setCaption(`«${event.text}»`);
+      answerRef.current = "";
+      setLiveAnswer("");
+      pushSubtitle("Вы", event.text);
     }
     if (event.event === "token" && event.text) {
       setState("speaking");
       setCaption(event.text);
+      answerRef.current += event.text;
+      setLiveAnswer(answerRef.current);
+    }
+    if (event.event === "audio") {
+      pushSubtitle("Амадеус", answerRef.current);
+      answerRef.current = "";
+      setLiveAnswer("");
+      playCue("answer");
     }
     if (event.event === "barge_in") setState("listening");
     if (event.event === "level" && typeof event.level === "number") setLevel(event.level);
@@ -72,6 +92,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     if (event.event === "error") {
       setState("error");
       setCaption(event.message ?? "Ошибка голосовой сессии");
+      playCue("error");
     }
   });
   const voiceRef = useRef(voice);
@@ -84,6 +105,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     setHintVisible(false);
     setState("listening");
     setCaption(tr("mini.listening"));
+    playCue("wake");
     void voiceRef.current.start(conversationId ?? undefined);
   }, [conversationId]);
 
@@ -92,6 +114,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
       clearTimers();
       setState("thinking");
       setCaption(`«${text}»`);
+      pushSubtitle("Вы", text);
       if (voiceRef.current.active) {
         voiceRef.current.sendText(text);
         return;
@@ -101,6 +124,8 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
           const reply = await onVoiceCommand(text);
           setState("speaking");
           setCaption(reply);
+          pushSubtitle("Амадеус", reply);
+          playCue("answer");
         } catch (error) {
           setState("error");
           setCaption(error instanceof Error ? error.message : "Не смог ответить");
@@ -183,6 +208,21 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
           {caption}
         </span>
       </div>
+
+      {(subtitles.length > 0 || liveAnswer) && (
+        <div className="mini-subtitles" aria-live="polite" aria-label="Субтитры голосового режима">
+          {subtitles.map((line, index) => (
+            <div className="mini-subtitle" key={`${line.speaker}-${index}`}>
+              <b>{line.speaker}:</b> {line.text}
+            </div>
+          ))}
+          {liveAnswer && (
+            <div className="mini-subtitle mini-subtitle--live">
+              <b>Амадеус:</b> {liveAnswer}
+            </div>
+          )}
+        </div>
+      )}
 
       {hintVisible && (
         <div className="mini-hint">

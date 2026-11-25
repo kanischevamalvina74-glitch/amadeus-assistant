@@ -11,6 +11,7 @@ import {
   workspaceApi,
 } from "../lib/api";
 import { t as translate, type Locale } from "../lib/i18n";
+import { setSoundEnabled, soundEnabled } from "../lib/sound";
 import "./control.css";
 import "./settings.css";
 
@@ -66,6 +67,7 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
     allow_write: false,
   });
   const [autostart, setAutostart] = useState(false);
+  const [sound, setSound] = useState(soundEnabled);
   const [settingsQuery, setSettingsQuery] = useState("");
   const [settingsIndex, setSettingsIndex] = useState<Array<{ key: string; title: string; category: string }>>([]);
   const [exportText, setExportText] = useState("");
@@ -309,6 +311,18 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
                   checked={autostart}
                   aria-label="Автозапуск с системой"
                   onChange={(event) => saveAutostart(event.target.checked)}
+                />
+              </label>
+              <label className="center-inline">
+                Звуковая подпись событий
+                <input
+                  type="checkbox"
+                  checked={sound}
+                  aria-label="Звуковая подпись событий"
+                  onChange={(event) => {
+                    setSound(event.target.checked);
+                    setSoundEnabled(event.target.checked);
+                  }}
                 />
               </label>
             </div>
