@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HUDCore, MetricCard } from "./primitives";
+import { MetricCard } from "./primitives";
+import { ParticleSphere } from "./ParticleSphere";
 import { RichText } from "./RichText";
 import { conversations, type ChatMessage, type Conversation } from "../data/mock";
 import type { HudState } from "./primitives";
@@ -729,15 +730,11 @@ export function Workspace({
               </div>
             </div>
 
-            <HUDCore state={state} size={sphereMode ? 380 : 248} />
+            <ParticleSphere className="hud" state={state} size={sphereMode ? 420 : 230} label={`Состояние ядра: ${state === "idle" ? tr("state.idle") : tr(`state.${state}`)}`} />
 
             {!sphereMode && (
               <div className="hud-compact">
-                <span className="orb" data-state={state} aria-hidden="true">
-                  <span className="orb__halo" />
-                  <span className="orb__ring" />
-                  <span className="orb__core" />
-                </span>
+                <ParticleSphere className="orb-sphere" state={state} size={32} points={130} />
                 <div className="hud-compact__column">
                   <span className="sr-only" role="status" aria-label="Состояние ядра">
                     ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}

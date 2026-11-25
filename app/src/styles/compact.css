@@ -51,7 +51,8 @@
 .app:not([data-sphere="true"]) .hud-meta,
 .app:not([data-sphere="true"]) .tool-satellites,
 .app:not([data-sphere="true"]) .scan { display: none; }
-.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud { transform: scale(.74); }
+canvas.particle-sphere { display: block; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud { transform: none; }
 
 /* ---------- в разговоре HUD уходит в шапку: мини-сфера и статус по центру ---------- */
 .app:not([data-sphere="true"]) .stage[data-hud="compact"] .hud-scene {
@@ -129,7 +130,8 @@ button.hud-compact__status {
 /* Пустой экран: сфера, приветствие и поле ввода одним блоком по центру. */
 .app:not([data-sphere="true"]) .stage[data-hud="full"] { justify-content: center; }
 .app:not([data-sphere="true"]) .stage[data-hud="full"] .stage-head { position: absolute; top: 0; left: 0; right: 0; }
-.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud-scene { height: 220px; margin-top: 0; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud-scene { height: 272px; margin-top: 0; align-content: start; padding-top: 4px; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud-caption { bottom: 4px; }
 .app:not([data-sphere="true"]) .stage[data-hud="full"] .chat { flex: 0 0 auto; overflow: visible; padding-top: 0; }
 .stage[data-hud="full"] .greeting { margin: 0 auto; text-align: center; }
 .app:not([data-sphere="true"]) .stage[data-hud="full"] .quick-prompts { justify-content: center; }
