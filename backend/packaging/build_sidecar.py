@@ -14,6 +14,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# В Windows-раннерах GitHub консоль может быть в cp1252, и русский текст в
+# логе сборки приводит к UnicodeEncodeError. Явно включаем UTF-8 для вывода.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 BACKEND = Path(__file__).resolve().parent.parent
 DIST = BACKEND / "dist"
 
