@@ -80,6 +80,8 @@ jobs:
         run: python packaging/build_sidecar.py
       - name: Зависимости UI
         run: npm ci
+      - name: Сборка UI
+        run: npm run build
       - name: Проверка Rust
         run: cargo check --manifest-path src-tauri/Cargo.toml
       - name: Сборка установщика NSIS
