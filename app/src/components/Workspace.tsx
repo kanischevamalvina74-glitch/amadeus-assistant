@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HUDCore, MetricCard } from "./primitives";
 import { conversations, type ChatMessage, type Conversation } from "../data/mock";
 import type { HudState } from "./primitives";
 import { OLLAMA_LABEL, OLLAMA_MODEL, type ModelState } from "../lib/ollama";
 import type { AttachmentPayload } from "../lib/api";
-import { api, system, workspaceApi } from "../lib/api";
+import {
+  api,
+  control,
+  system,
+  workspaceApi,
+  type ActionItem,
+} from "../lib/api";
 import { useLocale } from "../lib/i18n";
 
 type Metrics = {
@@ -344,25 +350,29 @@ export function Workspace({
   const [telemetryOpen, setTelemetryOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
+  const [pendingActions, setPendingActions] = useState<ActionItem[]>([]);
+  const [elapsed, setElapsed] = useState(0);
+  const [sessionStarted, setSessionStarted] = useState(false);
+
+  useEffect(() => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const refreshActions = useCallback(() => {
+    void control.actions().then((list) => setPendingActions(list.filter((item) => item.status === "proposed"))).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    refreshActions();
+    const timer = window.setInterval(refreshActions, 5000);
+    return () => window.clearInterval(timer);
+  }, [refreshActions]);
   const [panel, setPanel] = useState<Panel>("none");
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const bars = useMemo(
-    () =>
-      Array.from({ length: 56 }, (_, i) => {
-        const center = Math.abs(i - 28) / 28;
-        const base = 8 + (1 - center) * 22;
-        const jitter = ((i * 37) % 11) / 11;
-        return {
-          height: Math.round(base * (0.55 + jitter * 0.75)),
-          delay: (i * 0.035).toFixed(3),
-          duration: (1.2 + (i % 5) * 0.12).toFixed(2),
-        };
-      }),
-    [],
-  );
-
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.key === ".") {
@@ -452,6 +462,7 @@ export function Workspace({
     const text = draft.trim();
     if (!text && files.length === 0) return;
     onSend(text || "Посмотри вложение", files);
+    setSessionStarted(true);
     setDraft("");
     setFiles([]);
     setFileError("");
@@ -490,8 +501,8 @@ export function Workspace({
   return (
     <div className="app" data-focus={focusMode ? "true" : undefined}>
       <div className="statusbar" role="banner">
-        <span className={`dot ${!model.online ? "dot--off" : model.hasModel ? "" : "dot--warn"}`} />
-        <strong>{!model.online ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}</strong>
+        <span className={`dot ${!backendOnline ? "dot--off" : model.hasModel ? "" : "dot--warn"}`} />
+        <strong>{!backendOnline ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}</strong>
         <span className="sep">/</span>
         <span>{backendOnline ? tr("status.storage") : tr("status.demo")}</span>
         <span className="sep">/</span>
@@ -519,7 +530,7 @@ export function Workspace({
         </button>
       </div>
 
-      <div className="shell">
+      <div className="shell" data-panel={telemetryOpen ? "open" : "closed"}>
         <nav className="rail" aria-label="Основное">
           <button aria-current="page" title="Амадеус">
             <Icon name="core" />
@@ -589,7 +600,9 @@ export function Workspace({
               {OLLAMA_LABEL}
             </span>
             <span className="grow" />
-            <span className="hud-label">сеанс 00:42:16</span>
+            <span className="hud-label">
+              {String(Math.floor(elapsed / 3600)).padStart(2, "0")}:{String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}
+            </span>
             <button className="collapse-btn" onClick={() => setFocusMode((value) => !value)} title="Фокус: только сфера, чат и ввод">
               {focusMode ? "Выйти" : "Фокус"}
             </button>
@@ -649,30 +662,6 @@ export function Workspace({
             </div>
           </div>
 
-          <div className="voice">
-            <button className="btn primary" onClick={onTalk} title={tr("voice.microphone")}>
-              {tr("voice.microphone")}
-            </button>
-            {state === "listening" && (
-              <div className="wave" aria-hidden="true">
-                {bars.map((bar, i) => (
-                  <i
-                    key={i}
-                    style={{
-                      height: `${Math.round(6 + ((i * 37) % 11) * 0.55)}px`,
-                      animationDelay: `${bar.delay}s`,
-                      animationDuration: `${bar.duration}s`,
-                      "--h": `${bar.height}px`,
-                    } as CSSProperties}
-                  />
-                ))}
-              </div>
-            )}
-            <button className="btn ghost" onClick={onCollapse}>
-              {tr("voice.collapse")}
-            </button>
-          </div>
-
           <div
             className="chat"
             ref={chatRef}
@@ -699,6 +688,19 @@ export function Workspace({
                   </div>
                   <div className="body">
                     {message.text}
+                    {message.errorKind === "model-missing" && (
+                      <div className="model-error-card" role="alert">
+                        <button type="button" onClick={() => void navigator.clipboard.writeText(`ollama pull ${OLLAMA_MODEL}`)}>
+                          Скачать
+                        </button>
+                        <button type="button" onClick={onOpenSettings}>
+                          Выбрать другую
+                        </button>
+                        <button type="button" onClick={onRegenerate}>
+                          Повторить
+                        </button>
+                      </div>
+                    )}
                     {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
                     {!message.streaming &&
                       message.tools?.map((tool) => (
@@ -724,7 +726,38 @@ export function Workspace({
                   </div>
                 </div>
               ))}
+
+            {[...messages].reverse().find((item) => item.role === "assistant" && !item.streaming) && (
+              <button type="button" className="regenerate" onClick={onRegenerate}>
+                ↻ Перегенерировать
+              </button>
+            )}
           </div>
+
+          {pendingActions.length > 0 && (
+            <div className="approve-cards" aria-label="Запросы одобрения">
+              {pendingActions.map((action) => {
+                let args: Record<string, unknown> = {};
+                try { args = JSON.parse(action.args_json) as Record<string, unknown>; } catch { args = {}; }
+                return (
+                  <div className="approve-card" key={action.id} role="group" aria-label={`Действие ${action.tool_name}`}>
+                    <div className="approve-card__title">
+                      ⚠ {action.tool_name} · {action.risk_level}
+                    </div>
+                    <code className="approve-card__args">{JSON.stringify(args).slice(0, 180)}</code>
+                    <div className="approve-card__actions">
+                      <button type="button" onClick={() => { void control.approve(action.id).finally(refreshActions); }}>
+                        Разрешить
+                      </button>
+                      <button type="button" onClick={() => { void control.deny(action.id).finally(refreshActions); }}>
+                        Отклонить
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="composer-wrap">
             <input
@@ -777,6 +810,12 @@ export function Workspace({
                 }}
                 style={{ resize: "none", maxHeight: 160 }}
               />
+              <button className="icon-btn" title={tr("voice.microphone")} type="button" onClick={onTalk} aria-label={tr("voice.microphone")}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                </svg>
+              </button>
               <button className="icon-btn" title="Вложение" type="button" onClick={() => fileRef.current?.click()}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7L14 5.5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L16 7.5" />
@@ -806,16 +845,15 @@ export function Workspace({
                 </svg>
               </button>
             </div>
-            <div className="quick-prompts" aria-label="Подсказки">
-              {["Что у меня сегодня?", "Открой проект", "Сделай скриншот", "Напомни через 10 минут"].map((hint) => (
-                <button key={hint} type="button" onClick={() => setDraft(hint)}>
-                  {hint}
-                </button>
-              ))}
-              <button type="button" onClick={onRegenerate} title="Перегенерировать последний ответ">
-                ↻ Перегенерировать
-              </button>
-            </div>
+            {!sessionStarted && (
+              <div className="quick-prompts" aria-label="Подсказки">
+                {["Что у меня сегодня?", "Открой проект", "Сделай скриншот", "Напомни через 10 минут"].map((hint) => (
+                  <button key={hint} type="button" onClick={() => setDraft(hint)}>
+                    {hint}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="hints">
               <span>{tr("composer.hintEnter")}</span>
               <span>{tr("composer.hintCommands")}</span>

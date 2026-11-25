@@ -3,19 +3,28 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent
+# В собранном exe код лежит во временной папке распаковки: миграции и плагины
+# берём оттуда, а пользовательские данные — из стабильного каталога профиля.
+FROZEN = getattr(sys, "frozen", False)
+SOURCE_DIR = Path(__file__).resolve().parent.parent
+BACKEND_DIR = Path(getattr(sys, "_MEIPASS", SOURCE_DIR)) if FROZEN else SOURCE_DIR
 
 # README предлагает скопировать .env.example в .env — значения должны реально читаться.
 # Явно заданные переменные окружения имеют приоритет над файлом.
-load_dotenv(BACKEND_DIR / ".env", override=False)
+load_dotenv(SOURCE_DIR / ".env", override=False)
 
 MIGRATIONS_DIR = BACKEND_DIR / "migrations"
-DATA_DIR = BACKEND_DIR / "data"
+DATA_DIR = (
+    Path(os.getenv("AMADEUS_DATA_DIR", str(Path.home() / ".amadeus")))
+    if FROZEN
+    else BACKEND_DIR / "data"
+)
 DEFAULT_DB_PATH = DATA_DIR / "amadeus.db"
 
 # Стабильный id единственного пользователя этой машины. Запросы всегда

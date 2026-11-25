@@ -12,6 +12,7 @@ export type ChatMessage = {
   code?: { file: string; lines: string[] };
   streaming?: boolean;
   error?: boolean;
+  errorKind?: "model-missing";
 };
 
 export type Conversation = {

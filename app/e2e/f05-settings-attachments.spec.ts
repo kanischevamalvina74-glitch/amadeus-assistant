@@ -34,6 +34,17 @@ test.describe("S08/S15 настройки и F05 вложения", () => {
     await expect(dialog).toHaveCount(0);
   });
 
+  test("S08-H4 палитра Ctrl+K", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    await page.keyboard.press("Control+k");
+    const palette = page.getByRole("dialog", { name: "Палитра команд" });
+    await expect(palette).toBeVisible();
+    await palette.getByRole("textbox", { name: "Поиск по палитре" }).fill("Настройки");
+    await palette.getByRole("textbox", { name: "Поиск по палитре" }).press("Enter");
+    await expect(page.getByRole("dialog", { name: "Настройки" })).toBeVisible();
+  });
+
   test("S08-H3 сменить акцент оформления", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();

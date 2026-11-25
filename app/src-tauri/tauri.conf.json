@@ -29,6 +29,6 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "resources": ["../../backend"]
+    "externalBin": ["../../backend/dist/amadeus-core"]
   }
 }

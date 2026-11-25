@@ -73,6 +73,8 @@ export default function App() {
     models: [],
   });
   const [latency, setLatency] = useState<{ ms: number; tps: number } | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
   const busy = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
@@ -207,13 +209,18 @@ export default function App() {
     const onKey = (event: KeyboardEvent) => {
       if (workshopOpen) return;
       if (event.key === "Escape" && settingsOpen) setSettingsOpen(false);
+      else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((value) => !value);
+      }
+      else if (event.key === "Escape" && paletteOpen) setPaletteOpen(false);
       else if (event.key === "Escape" && centerOpen) setCenterOpen(false);
       else if (event.key === "Escape" && view === "workspace") setView("mini");
       else if (event.key === "Escape" && view === "mini") setView("workspace");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [view, workshopOpen, centerOpen, settingsOpen]);
+  }, [view, workshopOpen, centerOpen, settingsOpen, paletteOpen]);
 
   const flashSpeaking = useCallback(() => {
     setState("speaking");
@@ -351,14 +358,18 @@ export default function App() {
         void syncThreads(conversationId).catch(() => undefined);
       } catch (error) {
         const reason = error instanceof Error ? error.message : "неизвестная ошибка";
+        const modelMissing = reason.includes("404");
         setMessages((prev) => [
           ...prev,
           {
             id: newId(),
             role: "assistant",
             time: nowTime(),
-            text: `Не удалось получить ответ: ${reason}`,
+            text: modelMissing
+              ? "Модель не найдена в Ollama. Скачайте её или выберите другую модель."
+              : `Не удалось получить ответ: ${reason}`,
             error: true,
+            errorKind: modelMissing ? "model-missing" : undefined,
           },
         ]);
         setState("error");
@@ -511,6 +522,37 @@ export default function App() {
     [messages, runLocal, refreshModel, model.online, model.hasModel, backendOnline, conversationId, syncThreads],
   );
 
+  const openConversation = useCallback(async (id: string) => {
+    try {
+      const stored = await api.messages(id);
+      setConversationId(id);
+      setMessages(
+        stored
+          .filter((item) => item.role === "user" || item.role === "assistant")
+          .map((item) => ({
+            id: item.id,
+            role: item.role as "user" | "assistant",
+            time: toTime(item.created_at),
+            text: item.text,
+            error: item.status === "error" || Boolean(item.error),
+          })),
+      );
+      setThreads((prev) => prev?.map((thread) => ({ ...thread, active: thread.id === id })) ?? null);
+      setPaletteOpen(false);
+    } catch {
+      // диалог мог быть удалён — оставляем текущий
+    }
+  }, []);
+
+  const paletteItems = [
+    { label: "Настройки", action: () => { setSettingsOpen(true); setPaletteOpen(false); } },
+    { label: "Выбрать модель", action: () => { setSettingsOpen(true); setPaletteOpen(false); } },
+    { label: "Центр управления", action: () => { setCenterOpen(true); setPaletteOpen(false); } },
+    { label: "Команды и хоткеи", action: () => { setWorkshopOpen(true); setPaletteOpen(false); } },
+    { label: "Свёрнутый режим", action: () => { setAutoWake(true); setView("mini"); setPaletteOpen(false); } },
+    ...(threads ?? []).map((thread) => ({ label: `Диалог: ${thread.title}`, action: () => void openConversation(thread.id) })),
+  ].filter((item) => item.label.toLowerCase().includes(paletteQuery.trim().toLowerCase()));
+
   return (
     <>
       <div hidden={view !== "workspace"}>
@@ -602,6 +644,31 @@ export default function App() {
           onTelegramCommand={(text) => runLocal(text, true, false)}
           onClose={() => setWorkshopOpen(false)}
         />
+      )}
+
+      {paletteOpen && (
+        <div className="palette-overlay" role="dialog" aria-modal="true" aria-label="Палитра команд" onClick={() => setPaletteOpen(false)}>
+          <div className="palette" onClick={(event) => event.stopPropagation()}>
+            <input
+              autoFocus
+              value={paletteQuery}
+              onChange={(event) => setPaletteQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && paletteItems[0]) paletteItems[0].action();
+              }}
+              placeholder="Чаты, команды, настройки, модели…"
+              aria-label="Поиск по палитре"
+            />
+            <div className="palette-list">
+              {paletteItems.map((item) => (
+                <button key={item.label} type="button" onClick={item.action}>
+                  {item.label}
+                </button>
+              ))}
+              {paletteItems.length === 0 && <span className="palette-empty">Ничего не найдено</span>}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

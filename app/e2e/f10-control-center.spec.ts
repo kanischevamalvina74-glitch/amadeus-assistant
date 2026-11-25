@@ -15,6 +15,18 @@ async function openCenter(page: Page) {
 }
 
 test.describe("F10/F15/F17 Центр управления", () => {
+  test("F17-H2 Approve-карточка в чате", async ({ page }) => {
+    await page.request.post("/api/actions.propose", {
+      data: { tool: "notify", args: { text: "карточка в чате" }, risk: "low" },
+    });
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    const card = page.getByRole("group", { name: "Действие notify" }).first();
+    await expect(card).toBeVisible();
+    await card.getByRole("button", { name: "Разрешить" }).click();
+    await expect(card).toHaveCount(0);
+  });
+
   test("F10-H1 создать и удалить напоминание", async ({ page }) => {
     const { dialog, serverErrors } = await openCenter(page);
     const title = `Позвонить ${Date.now()}`;

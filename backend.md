@@ -67,3 +67,23 @@ python -m pytest -q
 - **Разрешения:** миграция `0004_permission_scopes.sql` расширяет scope до 10 (`system`, `apps`, `files`, `terminal`, `web`);опасные инструменты (`system.power`, `terminal.run`, `fs.move`) принудительно получают `risk=high` и требуют подтверждения.
 - **Память и безопасность:** `memory.summarize` через активную модель; PIN хранится как scrypt-верификатор в keychain, 5 неудачных попыток ⇒ блокировка на минуту.
 - **Миграции:** теперь `0001…0004`. Тесты: 64 passed, 1 skipped.
+
+
+## Сборка ядра без системного Python (2026-11-25)
+
+```bash
+cd replica/backend
+python -m pip install -r requirements.txt pyinstaller
+python packaging/build_sidecar.py
+```
+
+Скрипт собирает `dist/amadeus-core.exe` и копию `dist/amadeus-core-<target-triple>.exe`, которую подхватывает Tauri как `externalBin`. Миграции и манифесты плагинов включаются в exe. Без `AMADEUS_DB_PATH` собранное ядро хранит базу в `~/.amadeus/amadeus.db`. Проверка собранного exe:
+
+```bash
+set AMADEUS_ALLOW_PLAINTEXT_DB=1
+set AMADEUS_SECRET_STORE=memory
+dist\amadeus-core.exe
+# в другом терминале: curl http://127.0.0.1:8787/api/health
+```
+
+В dev-режиме `start_backend` по-прежнему запускает `python -m uvicorn core.app:app`.

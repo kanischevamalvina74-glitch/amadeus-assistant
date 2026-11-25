@@ -626,3 +626,60 @@
   cursor: pointer;
 }
 .quick-prompts button:hover { color: var(--color-accent); border-color: var(--color-accent-dim); }
+
+/* Approve-карточки прямо в чате. */
+.approve-cards { display: grid; gap: 8px; padding: 8px 20px 0; }
+.approve-card {
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  padding: 10px 12px;
+  color: var(--color-text);
+}
+.approve-card__title { font-size: 12px; font-weight: 600; color: var(--color-warning); }
+.approve-card__args {
+  display: block; margin: 6px 0; font-size: 10px;
+  color: var(--color-text-muted); white-space: pre-wrap; word-break: break-word;
+}
+.approve-card__actions { display: flex; gap: 8px; }
+.approve-card__actions button {
+  border: 1px solid var(--color-border-input);
+  background: none; color: var(--color-text);
+  border-radius: var(--radius-sm); padding: 4px 10px; font-size: 11px; cursor: pointer;
+}
+.approve-card__actions button:first-child { border-color: var(--color-accent); color: var(--color-accent); }
+
+/* Узкий экран: боковые панели уезжают, центр остаётся читаемым. */
+.shell[data-panel="closed"] { grid-template-columns: var(--layout-rail) var(--layout-sidebar) 1fr; }
+.status-chip { text-transform: none; }
+.composer .input:focus { outline: 1px solid var(--color-accent-dim); outline-offset: 0; box-shadow: none; }
+.composer:focus-within { border-color: var(--color-border-input); }
+.regenerate {
+  display: block; margin: 4px 0 8px 14px;
+  border: 0; background: none; color: var(--color-text-muted);
+  font-size: 10px; cursor: pointer;
+}
+.regenerate:hover { color: var(--color-accent); }
+.quick-prompts button { font-family: var(--font-sans); letter-spacing: 0; }
+@media (max-width: 900px) {
+  .shell,
+  .shell[data-panel="closed"] { grid-template-columns: 52px 1fr; }
+  .sidebar, .panel { display: none !important; }
+  .rail { width: 52px; }
+  .statusbar { flex-wrap: wrap; row-gap: 2px; }
+  .hud-scene { min-height: 240px; }
+  .mini-caption__text { font-size: 13px; }
+}
+@media (max-width: 600px) {
+  .stage-head .model, .stage-head .hud-label { display: none; }
+  .composer-wrap { padding: 0 8px 8px; }
+  .quick-prompts button { font-size: 9px; }
+}
+
+.model-error-card { display: flex; gap: 8px; margin-top: 8px; }
+.model-error-card button {
+  border: 1px solid var(--color-warning);
+  background: none; color: var(--color-warning);
+  border-radius: var(--radius-sm); padding: 4px 10px; font-size: 10px; cursor: pointer;
+}
+.model-error-card button:hover { color: var(--color-text); background: var(--color-surface-2); }

@@ -1,47 +1,95 @@
 //! Нативная оболочка Амадеуса.
 //!
 //! Команды ниже — заглушки с тем же контрактом, что и HTTP-зеркало в
-//! `replica/backend/core/app.py`. Реализация появится вместе с нативными
-//! возможностями (окна, ввод, скриншот, keychain, уведомления, обновления).
-//! Фронтенд пока говорит с ядром по HTTP; переход на invoke() не меняет
-//! сигнатуры экранов — меняется только `replica/app/src/lib/api.ts`.
+//! `backend/core/app.py`. HTTP-зеркало доступно и из браузера, и из оболочки.
+//! Фронтенд говорит с ядром по HTTP; invoke() используется только для нативных команд.
 
 use base64::Engine;
 use serde_json::{json, Value};
+use std::net::{TcpStream, ToSocketAddrs};
+use std::sync::Mutex;
+use std::time::Duration;
 use tauri::Manager;
+use tauri_plugin_shell::ShellExt;
+
+/// Дочерний процесс ядра: собранный sidecar или Python из исходников в dev.
+enum BackendChild {
+    Native(std::process::Child),
+    Sidecar(tauri_plugin_shell::process::CommandChild),
+}
+
+impl BackendChild {
+    fn stop(self) {
+        match self {
+            Self::Native(mut child) => {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            Self::Sidecar(child) => {
+                let _ = child.kill();
+            }
+        }
+    }
+}
+
+/// Дочерний процесс ядра; убивается при выходе приложения.
+struct SidecarState(Mutex<Option<BackendChild>>);
+
+fn backend_port_open() -> bool {
+    ("127.0.0.1", 8787)
+        .to_socket_addrs()
+        .ok()
+        .and_then(|mut addrs| addrs.next())
+        .and_then(|addr| TcpStream::connect_timeout(&addr, Duration::from_millis(200)).ok())
+        .is_some()
+}
 
 /// Поднимает Python-sidecar с ядром. В dev-режиме исходники рядом с src-tauri,
 /// в релизе — в resources (см. tauri.conf.json).
 #[tauri::command]
-fn start_backend(app: tauri::AppHandle) -> Result<String, String> {
-    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Result<String, String> {
+    if backend_port_open() {
+        return Ok("ядро уже отвечает на :8787".into());
+    }
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(data_dir.join("data")).map_err(|e| e.to_string())?;
+    let db_path = data_dir.join("data/amadeus.db");
+
+    // В релизе ядро — отдельный exe (externalBin), системный Python не нужен.
+    if let Ok(sidecar) = app.shell().sidecar("amadeus-core") {
+        let (_rx, child) = sidecar
+            .env("AMADEUS_DB_PATH", &db_path)
+            .env("AMADEUS_SECRET_STORE", "keyring")
+            .env("AMADEUS_PORT", "8787")
+            .spawn()
+            .map_err(|e| format!("не удалось запустить ядро: {e}"))?;
+        *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Sidecar(child));
+        return Ok("ядро запущено из externalBin".into());
+    }
+
+    // В dev-режиме fallback на исходники и системный Python.
     let dev_dir = std::env::current_dir()
         .unwrap_or_default()
         .parent()
         .map(|p| p.join("backend"))
         .unwrap_or_default();
-    let backend = if resource_dir.join("backend/core/app.py").exists() {
-        resource_dir.join("backend")
-    } else if dev_dir.join("core/app.py").exists() {
-        dev_dir
-    } else {
+    if !dev_dir.join("core/app.py").exists() {
         return Err("не найдено ядро backend/core/app.py".into());
-    };
-
-    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(data_dir.join("data")).map_err(|e| e.to_string())?;
+    }
     let python = std::env::var("AMADEUS_PYTHON").unwrap_or_else(|_| "python".into());
     let child = std::process::Command::new(python)
         .args([
             "-m", "uvicorn", "core.app:app",
             "--host", "127.0.0.1", "--port", "8787",
         ])
-        .current_dir(&backend)
-        .env("AMADEUS_DB_PATH", data_dir.join("data/dev.db"))
+        .current_dir(&dev_dir)
+        .env("AMADEUS_DB_PATH", db_path)
         .env("AMADEUS_SECRET_STORE", "keyring")
         .spawn()
         .map_err(|e| format!("не удалось запустить Python: {e}"))?;
-    Ok(format!("sidecar pid {}", child.id()))
+    let pid = child.id();
+    *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Native(child));
+    Ok(format!("sidecar pid {pid}"))
 }
 
 #[tauri::command]
@@ -174,6 +222,8 @@ stub!(diagnostics_export);
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_shell::init())
+        .manage(SidecarState(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             app_health,
             start_backend,
@@ -244,6 +294,17 @@ pub fn run() {
             diagnostics_logs,
             diagnostics_export
         ])
-        .run(tauri::generate_context!())
-        .expect("ошибка запуска оболочки Tauri");
+        .build(tauri::generate_context!())
+        .expect("ошибка запуска оболочки Tauri")
+        .run(|_app, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                if let Some(state) = _app.try_state::<SidecarState>() {
+                    if let Ok(mut guard) = state.0.lock() {
+                        if let Some(child) = guard.take() {
+                            child.stop();
+                        }
+                    }
+                }
+            }
+        });
 }

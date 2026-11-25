@@ -16,6 +16,7 @@ backend/.env
 *.key
 
 # Модели и тяжёлые ассеты
+backend/build/
 backend/data/models/
 *.onnx
 *.bin

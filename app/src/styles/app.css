@@ -177,3 +177,35 @@
   color: var(--color-danger);
   border-left-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
 }
+
+/* Единая палитра Ctrl+K. */
+.palette-overlay {
+  position: fixed; inset: 0; z-index: 10001;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 14vh;
+  background: rgba(0, 0, 0, .55);
+}
+.palette {
+  width: min(560px, 90vw);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+.palette input {
+  width: 100%;
+  border: 0; border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  padding: 12px 16px;
+  font: inherit;
+  outline: none;
+}
+.palette-list { display: grid; max-height: 52vh; overflow: auto; }
+.palette-list button {
+  border: 0; background: none; color: var(--color-text);
+  padding: 10px 16px; text-align: left; font: inherit; cursor: pointer;
+}
+.palette-list button:hover { background: var(--color-surface-2); color: var(--color-accent); }
+.palette-empty { padding: 12px 16px; color: var(--color-text-muted); font-size: 12px; }
