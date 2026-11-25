@@ -133,3 +133,49 @@ button.hud-compact__status {
 .app:not([data-sphere="true"]) .stage[data-hud="full"] .chat { flex: 0 0 auto; overflow: visible; padding-top: 0; }
 .stage[data-hud="full"] .greeting { margin: 0 auto; text-align: center; }
 .app:not([data-sphere="true"]) .stage[data-hud="full"] .quick-prompts { justify-content: center; }
+
+/* ---------- орб в шапке: живое ядро вместо уменьшенной сферы ---------- */
+.orb {
+  --orb-tone: var(--color-accent);
+  --orb-arc: var(--color-brass-bright);
+  --orb-spin: 7s;
+  --orb-breath: 3.6s;
+  position: relative; width: 30px; height: 30px; flex: 0 0 auto;
+  display: inline-block;
+}
+.orb[data-state="thinking"] { --orb-tone: var(--color-brass); --orb-spin: 1.3s; --orb-breath: 1.6s; }
+.orb[data-state="speaking"] { --orb-tone: var(--color-brass-bright); --orb-arc: var(--color-accent); --orb-spin: 3s; --orb-breath: .9s; }
+.orb[data-state="listening"] { --orb-spin: 2.2s; --orb-breath: 1.2s; }
+.orb[data-state="error"] { --orb-tone: var(--color-danger); --orb-arc: var(--color-danger); }
+.orb__halo, .orb__ring, .orb__core { position: absolute; border-radius: 50%; }
+.orb__halo {
+  inset: -7px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--orb-tone) 38%, transparent) 0%, transparent 68%);
+  animation: orb-breath var(--orb-breath) ease-in-out infinite;
+}
+.orb__ring {
+  inset: 0;
+  background:
+    conic-gradient(from 0deg, transparent 0 58%, color-mix(in srgb, var(--orb-arc) 30%, transparent) 70%, var(--orb-arc) 84%, transparent 86%),
+    radial-gradient(circle, transparent 60%, color-mix(in srgb, var(--orb-tone) 30%, transparent) 61%, transparent 66%);
+  -webkit-mask: radial-gradient(circle, transparent 12px, #000 12.5px);
+          mask: radial-gradient(circle, transparent 12px, #000 12.5px);
+  animation: orb-spin var(--orb-spin) linear infinite;
+}
+.orb__core {
+  inset: 8px;
+  background:
+    radial-gradient(circle at 36% 32%, #fff 0 8%, color-mix(in srgb, var(--orb-tone) 85%, #fff) 22%, var(--orb-tone) 45%, color-mix(in srgb, var(--orb-tone) 35%, #000) 100%);
+  box-shadow:
+    0 0 6px color-mix(in srgb, var(--orb-tone) 80%, transparent),
+    0 0 16px color-mix(in srgb, var(--orb-tone) 45%, transparent);
+  animation: orb-core var(--orb-breath) ease-in-out infinite;
+}
+.orb[data-state="error"] .orb__ring { animation: none; }
+@keyframes orb-spin { to { transform: rotate(360deg); } }
+@keyframes orb-breath { 0%, 100% { opacity: .55; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes orb-core { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) {
+  .orb__halo, .orb__ring, .orb__core { animation: none; }
+}
+[data-theme="light"] .orb__core { box-shadow: 0 0 4px color-mix(in srgb, var(--orb-tone) 60%, transparent); }

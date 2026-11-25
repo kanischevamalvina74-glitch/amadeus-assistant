@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HUDCore, MiniCore, MetricCard } from "./primitives";
+import { HUDCore, MetricCard } from "./primitives";
 import { RichText } from "./RichText";
 import { conversations, type ChatMessage, type Conversation } from "../data/mock";
 import type { HudState } from "./primitives";
@@ -733,7 +733,11 @@ export function Workspace({
 
             {!sphereMode && (
               <div className="hud-compact">
-                <MiniCore state={state} size={26} />
+                <span className="orb" data-state={state} aria-hidden="true">
+                  <span className="orb__halo" />
+                  <span className="orb__ring" />
+                  <span className="orb__core" />
+                </span>
                 <div className="hud-compact__column">
                   <span className="sr-only" role="status" aria-label="Состояние ядра">
                     ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
@@ -745,11 +749,11 @@ export function Workspace({
                       aria-expanded={errorOpen}
                       onClick={() => setErrorOpen((value) => !value)}
                     >
-                      ● {tr("state.error")} · {errorOpen ? "скрыть" : "подробнее"}
+                      {tr("state.error")} · {errorOpen ? "скрыть" : "подробнее"}
                     </button>
                   ) : (
                     <span className={`hud-compact__status hud-compact__status--${state}`}>
-                      ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
+                      {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
                     </span>
                   )}
                   {compactHud && state === "error" && lastError && errorOpen && (
