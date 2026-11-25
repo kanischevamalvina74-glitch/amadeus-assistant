@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MiniCore, type HudState } from "./primitives";
+import { type HudState } from "./primitives";
+import { ParticleSphere } from "./ParticleSphere";
 import { CharacterAvatar } from "./CharacterAvatar";
 import type { AvatarMode } from "../lib/preferences";
 import { useLocale } from "../lib/i18n";
@@ -201,7 +202,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
   const micText = useMemo(() => MIC_LABEL[micStatus] ?? MIC_LABEL.listening, [micStatus]);
 
   return (
-    <div className="mini-stage" aria-label="Свёрнутый режим Amadeus">
+    <div className="mini-stage" aria-label="Свёрнутый режим Amadeus" data-tauri-drag-region>
       <div className={`mini-caption ${state === "idle" ? "" : "mini-caption--active"}`}>
         <span className={`mini-caption__dot mini-caption__dot--${state}`} aria-hidden="true" />
         <span className="mini-caption__text" role="status" aria-label="Подпись состояния">
@@ -242,16 +243,16 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
             aria-label={`Amadeus: ${state}. Открыть окно`}
           />
         ) : (
-          <MiniCore
-            state={state}
-            size={64}
-            wake={wakeActive}
-            level={level}
-            dim={state === "idle" && !wakeActive && !hintVisible}
-            tipAlign="right"
+          <button
+            type="button"
+            className="mini-sphere"
+            data-state={state}
+            data-wake={wakeActive || undefined}
             onClick={onRestore}
             aria-label={`Amadeus: ${state}. Открыть окно`}
-          />
+          >
+            <ParticleSphere state={wakeActive && state === "idle" ? "listening" : state} size={176} level={level} />
+          </button>
         )}
       </div>
 

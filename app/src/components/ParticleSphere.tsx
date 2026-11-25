@@ -13,6 +13,8 @@ type Props = {
   points?: number;
   className?: string;
   label?: string;
+  /** Громкость голоса 0..1 — раскачивает поверхность сильнее. */
+  level?: number;
 };
 
 const TONE_VAR: Record<string, string> = {
@@ -35,10 +37,12 @@ function parseColor(value: string): [number, number, number] {
   return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [79, 216, 240];
 }
 
-export function ParticleSphere({ state = "idle", size = 248, points, className = "", label }: Props) {
+export function ParticleSphere({ state = "idle", size = 248, points, className = "", label, level = 0 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const levelRef = useRef(level);
+  levelRef.current = level;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -86,7 +90,8 @@ export function ParticleSphere({ state = "idle", size = 248, points, className =
       if (s !== toneState) readTone();
 
       const spin = s === "thinking" ? 1.6 : s === "speaking" ? 0.7 : s === "listening" ? 0.5 : s === "error" ? 0.05 : 0.22;
-      const targetEnergy = s === "speaking" ? 1 : s === "thinking" ? 0.55 : s === "listening" ? 0.35 : 0.12;
+      const voice = Math.max(0, Math.min(1, levelRef.current));
+      const targetEnergy = voice > 0.05 ? Math.max(0.6, voice * 1.4) : s === "speaking" ? 1 : s === "thinking" ? 0.55 : s === "listening" ? 0.35 : 0.12;
       energy += (targetEnergy - energy) * Math.min(1, dt * 3);
       angle += (reduce ? 0 : spin) * dt;
       const t = now / 1000;

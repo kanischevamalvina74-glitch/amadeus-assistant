@@ -173,3 +173,75 @@
   .mini-caption { right: 20px; bottom: 110px; max-width: calc(100vw - 40px); }
   .mini-subtitles { right: 20px; bottom: 158px; width: calc(100vw - 40px); }
 }
+
+/* ===== Свёрнутый режим: только сфера, без рамок, колец и сетки ===== */
+.mini-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--color-bg);
+}
+.mini-stage::before { display: none; }
+.mini-orb {
+  position: static;
+  order: 1;
+}
+.mini-orb::before { display: none; }
+.mini-sphere {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.mini-sphere:focus-visible { outline: 1px solid var(--color-accent); outline-offset: 4px; }
+.mini-caption {
+  position: static;
+  order: 2;
+  max-width: min(420px, 90vw);
+  padding: 0;
+  border: 0;
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-align: center;
+  justify-content: center;
+}
+.mini-caption--active { color: var(--color-accent); }
+.mini-subtitles {
+  position: static;
+  order: 3;
+  width: min(460px, 90vw);
+  text-align: center;
+}
+.mini-subtitle {
+  padding: 0;
+  border: 0;
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  font-size: 15px;
+}
+.mini-hint { border: 0; }
+.mini-hint__key { width: auto; min-width: 16px; padding: 0 4px; }
+@media (max-width: 760px) {
+  .mini-caption, .mini-subtitles { right: auto; bottom: auto; }
+}
+
+/* В оболочке Tauri окно прозрачное: видна только сфера и подпись. */
+html[data-shell="tauri"][data-view="mini"],
+html[data-shell="tauri"][data-view="mini"] body { background: transparent; }
+html[data-shell="tauri"][data-view="mini"] #root > * { visibility: hidden; }
+html[data-shell="tauri"][data-view="mini"] #root .mini-stage { visibility: visible; background: transparent; }
+html[data-shell="tauri"][data-view="mini"] .mini-hint,
+html[data-shell="tauri"][data-view="mini"] .mini-mic { display: none; }
+html[data-shell="tauri"][data-view="mini"] .mini-subtitles { width: 92vw; }
+html[data-shell="tauri"][data-view="mini"] .mini-subtitle { font-size: 13px; }
+html[data-shell="tauri"][data-view="mini"] .mini-caption, html[data-shell="tauri"][data-view="mini"] .mini-subtitle { text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 12px rgba(0,0,0,.6); }

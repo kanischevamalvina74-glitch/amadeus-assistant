@@ -187,6 +187,39 @@ fn window_fullscreen(app: tauri::AppHandle, enabled: bool) {
     }
 }
 
+/// Свёрнутый режим: окно без рамки и тени, поверх всех, только сфера в правом нижнем углу.
+#[tauri::command]
+fn window_mini(app: tauri::AppHandle, enabled: bool) {
+    let Some(window) = app.get_webview_window("main") else { return };
+    if enabled {
+        let (w, h) = (280.0_f64, 320.0_f64);
+        let _ = window.set_fullscreen(false);
+        let _ = window.set_decorations(false);
+        let _ = window.set_shadow(false);
+        let _ = window.set_min_size(None::<tauri::Size>);
+        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
+        let _ = window.set_always_on_top(true);
+        let _ = window.set_skip_taskbar(true);
+        if let Ok(Some(monitor)) = window.current_monitor() {
+            let scale = monitor.scale_factor();
+            let size = monitor.size();
+            let pos = monitor.position();
+            let x = pos.x + size.width as i32 - ((w + 24.0) * scale) as i32;
+            let y = pos.y + size.height as i32 - ((h + 56.0) * scale) as i32;
+            let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y }));
+        }
+    } else {
+        let _ = window.set_always_on_top(false);
+        let _ = window.set_skip_taskbar(false);
+        let _ = window.set_decorations(true);
+        let _ = window.set_shadow(true);
+        let _ = window.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize { width: 900.0, height: 600.0 })));
+        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: 1440.0, height: 900.0 }));
+        let _ = window.center();
+    }
+    let _ = window.show();
+}
+
 macro_rules! stub {
     ($name:ident) => {
         #[tauri::command]
@@ -272,6 +305,7 @@ pub fn run() {
             window_hide,
             window_show,
             window_fullscreen,
+            window_mini,
             setup_status,
             setup_complete,
             settings_get,

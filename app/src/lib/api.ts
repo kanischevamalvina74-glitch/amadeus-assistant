@@ -112,6 +112,12 @@ export const shell = {
     await invoke("window_show").catch(() => undefined);
   },
 
+  /** Свёрнутый режим: маленькое окно без рамки поверх всех, только сфера. */
+  async setMiniWindow(enabled: boolean): Promise<void> {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    await invoke("window_mini", { enabled }).catch(() => undefined);
+  },
+
   async setFullscreen(enabled: boolean): Promise<void> {
     if ("__TAURI_INTERNALS__" in window) {
       await invoke("window_fullscreen", { enabled }).catch(() => undefined);

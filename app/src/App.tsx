@@ -116,6 +116,13 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    if ("__TAURI_INTERNALS__" in window) root.dataset.shell = "tauri";
+    root.dataset.view = view;
+    void shell.setMiniWindow(view === "mini");
+  }, [view]);
+
+  useEffect(() => {
     try {
       localStorage.setItem("amadeus.themeMode", themeMode);
     } catch {
