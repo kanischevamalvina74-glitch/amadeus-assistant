@@ -18,16 +18,24 @@
 6. Signing Policy: выберите политику **Open Source Code Signing** и укажите репозиторий `владелец/репозиторий`.
 7. Создайте API-токен пользователя с правом *submitter* для этого проекта и политики.
 
+## Фактические параметры (2026-11-25)
+
+- Organization ID: `a1eefc3b-f351-4356-af52-49ab5322f42a`
+- Project: `amadeus` (ID `dfc15b8b-e72c-42e0-9706-5c4979d827b5`), Artifact Configuration — Portable Executable.
+- Публичный репозиторий: https://github.com/kanischevamalvina74-glitch/amadeus-assistant (MIT, без чужих ассетов).
+- Заявка в SignPath Foundation отправлена через https://signpath.org/apply, статус — ожидает одобрения. Сертификат выдаст фонд, приватный ключ останется на HSM SignPath.
+- После одобрения: создать signing policy с purpose release, привязать сертификат, включить GitHub.com как trusted build system и origin verification, выпустить API-токен submitter.
+
 ## Секреты и переменные GitHub
 
 `Settings → Secrets and variables → Actions`:
 
 | тип | имя | значение |
 | --- | --- | --- |
-| Secret | `SIGNPATH_API_TOKEN` | токен из SignPath |
-| Variable | `SIGNPATH_ORGANIZATION_ID` | ID организации в SignPath |
+| Secret | `SIGNPATH_API_TOKEN` | токен из SignPath (после одобрения заявки) |
+| Variable | `SIGNPATH_ORGANIZATION_ID` | `a1eefc3b-f351-4356-af52-49ab5322f42a` |
 | Variable | `SIGNPATH_PROJECT_SLUG` | `amadeus` |
-| Variable | `SIGNPATH_SIGNING_POLICY_SLUG` | slug политики OSS |
+| Variable | `SIGNPATH_SIGNING_POLICY_SLUG` | slug политики (после создания) |
 
 Если репозиторий приватный или не установлено GitHub App `signpath`, workflow уже содержит необходимые права `actions: read` и `contents: read`.
 
