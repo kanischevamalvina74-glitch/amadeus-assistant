@@ -1021,3 +1021,36 @@ button.hud-compact__status:hover { text-decoration: underline; }
   position: static; transform: none; margin-top: 2px;
   font-size: 10px; white-space: nowrap;
 }
+
+
+/* ---------- правки после оценки 8,5 ---------- */
+.chat .msg { position: relative; }
+.chat .msg .who {
+  position: absolute; top: -13px; right: 0;
+  opacity: 0; pointer-events: none;
+}
+.chat .msg.assistant .who { right: auto; left: 0; }
+.chat .msg:hover .who, .chat .msg:focus-within .who { opacity: 1; }
+
+.hud-caption button,
+button.hud-compact__status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.hud-caption button:hover,
+button.hud-compact__status:hover { text-decoration: underline; }
+
+@media (max-width: 960px) {
+  .stage[data-hud="compact"] .hud-scene { height: 120px; min-height: 120px; }
+  .statusbar { flex-wrap: nowrap; height: var(--layout-status); row-gap: 0; }
+  .statusbar .status-storage,
+  .statusbar .status-memory,
+  .statusbar .status-temp,
+  .statusbar .sep { display: none; }
+}

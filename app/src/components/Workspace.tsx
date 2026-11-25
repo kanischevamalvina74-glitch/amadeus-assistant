@@ -549,7 +549,7 @@ export function Workspace({
         <span className={`dot ${!backendOnline ? "dot--off" : model.hasModel ? "" : "dot--warn"}`} />
         <strong>{!backendOnline ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}</strong>
         <span className="sep">/</span>
-        <span>{backendOnline ? tr("status.storage") : tr("status.demo")}</span>
+        <span className="status-storage">{backendOnline ? tr("status.storage") : tr("status.demo")}</span>
         <span className="sep">/</span>
         <span>{tr("status.russian")}</span>
         <span className="grow" />
@@ -563,11 +563,11 @@ export function Workspace({
           {tr("status.cpu")} <strong>{metrics ? `${metrics.cpu}%` : "-"}</strong>
         </button>
         <span className="sep">·</span>
-        <span>
+        <span className="status-memory">
           {tr("status.memory")} <strong>{metrics ? `${metrics.memory.used_gb} ГБ` : "—"}</strong>
         </span>
         <span className="sep">·</span>
-        <span className="amber">
+        <span className="amber status-temp">
           {tr("status.temp")} <strong>{metrics?.temperature_c != null ? `${metrics.temperature_c} °C` : "—"}</strong>
         </span>
         <button className="theme-toggle" onClick={onToggleTheme} title="Переключить тему">

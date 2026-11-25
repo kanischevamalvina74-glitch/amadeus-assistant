@@ -127,3 +127,10 @@ cd replica/app && npm run e2e
 - Клик по строке ошибки в сжатом HUD раскрывает причину и кнопку «Скачать`.
 - `F17-H2` очищает устаревшие proposed-действия, чтобы карточка не подменялась старой записью.
 - Итог: 71 pytest (1 skipped) + 37 Playwright зелёные; tsc/vite build/cargo check проходят.
+
+
+## Дополнение 2026-11-25: установщик
+
+- `npx tauri build` собирает NSIS-установщик `Amadeus_0.1.0_x64-setup.exe` с встроенным `amadeus-core.exe`.
+- Запуск portable `amadeus.exe` проверен по `/api/health` и логам `logs/core.log`.
+- Итог: 71 pytest (1 skipped) + 37 Playwright зелёные; tsc/vite build/cargo check проходят.

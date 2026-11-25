@@ -64,6 +64,8 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
         .and_then(|sidecar| {
             sidecar
                 .env("AMADEUS_DB_PATH", &db_path)
+                // Пока SQLCipher не подключён, база пользователя хранится открыто в appdata.
+                .env("AMADEUS_ALLOW_PLAINTEXT_DB", "1")
                 .env("AMADEUS_SECRET_STORE", "keyring")
                 .env("AMADEUS_PORT", "8787")
                 .spawn()

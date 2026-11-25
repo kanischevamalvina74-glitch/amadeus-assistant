@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Амадеус",
+        "title": "Amadeus",
         "width": 1440,
         "height": 900,
         "minWidth": 900,
@@ -28,7 +28,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
+    "publisher": "Amadeus",
+    "copyright": "Copyright © 2026 Amadeus",
+    "licenseFile": "../../LICENSE",
     "externalBin": ["../../backend/dist/amadeus-core"]
   }
 }
