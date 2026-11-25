@@ -1,0 +1,116 @@
+.avatar { overflow: hidden; }
+.avatar__svg { width: 100%; height: 100%; overflow: visible; }
+
+.avatar__shoulders,
+.avatar__head,
+.avatar__visor,
+.avatar__neck {
+  fill: var(--color-surface-2);
+  stroke: var(--mini-tone);
+  stroke-width: 1.4;
+}
+.avatar__head { fill: var(--color-surface-3); }
+.avatar__visor { fill: var(--color-bg); stroke-opacity: .7; }
+.avatar__neck { fill: var(--color-surface-2); }
+
+.avatar__eyes circle {
+  fill: var(--mini-tone);
+  filter: drop-shadow(0 0 3px var(--mini-tone));
+}
+.avatar__eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: avatar-blink 7s var(--ease) infinite;
+}
+
+.avatar__ear { fill: var(--color-surface-2); stroke: var(--mini-tone); stroke-width: 1; }
+.avatar__antenna { stroke: var(--mini-tone); stroke-width: 1.4; stroke-linecap: round; }
+.avatar__antenna-dot {
+  fill: var(--mini-tone);
+  animation: avatar-antenna 2.8s var(--ease-hud) infinite;
+}
+.avatar__core { fill: var(--mini-tone); opacity: .85; }
+
+.avatar__body {
+  transform-box: fill-box;
+  transform-origin: center 78%;
+  animation: avatar-breathe 4.2s var(--ease-hud) infinite;
+}
+
+.avatar__halo { opacity: .5; animation: avatar-halo 4.2s var(--ease-hud) infinite; }
+
+/* Говорит: рот-эквалайзер. */
+.avatar__mouth { opacity: 0; }
+.avatar__mouth rect {
+  fill: var(--mini-tone);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.mini[data-state="speaking"] .avatar__mouth { opacity: 1; }
+.mini[data-state="speaking"] .avatar__mouth rect {
+  animation: avatar-talk .6s var(--ease-hud) infinite;
+}
+.mini[data-state="speaking"] .avatar__mouth rect:nth-child(2) { animation-delay: .12s; }
+.mini[data-state="speaking"] .avatar__mouth rect:nth-child(3) { animation-delay: .24s; }
+.mini[data-state="speaking"] .avatar__eyes { animation-duration: 2.4s; }
+
+/* Слушает: боковые дуги и быстрая антенна. */
+.avatar__listen { opacity: 0; }
+.avatar__listen path {
+  fill: none;
+  stroke: var(--mini-tone);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.mini[data-state="listening"] .avatar__listen { opacity: .8; animation: avatar-listen 1.6s var(--ease-hud) infinite; }
+.mini[data-state="listening"] .avatar__eyes circle { r: 2.9; }
+
+/* Думает: орбита точек вокруг головы. */
+.avatar__orbit { opacity: 0; transform-origin: 60px 60px; }
+.avatar__orbit circle { fill: var(--color-hud-amber); }
+.mini[data-state="thinking"] .avatar__orbit {
+  opacity: .95;
+  animation: avatar-orbit 3.4s linear infinite;
+}
+
+.mini[data-state="error"] .avatar__antenna-dot { animation: none; opacity: .6; }
+.mini[data-state="muted"] .avatar__eyes { animation: none; opacity: .35; }
+.avatar__muted { opacity: 0; }
+.avatar__muted line { stroke: var(--color-text-faint); stroke-width: 2; stroke-linecap: round; }
+.mini[data-state="muted"] .avatar__muted { opacity: 1; }
+
+@keyframes avatar-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-1px) scale(1.012); }
+}
+@keyframes avatar-halo {
+  0%, 100% { opacity: .35; }
+  50% { opacity: .6; }
+}
+@keyframes avatar-blink {
+  0%, 91%, 100% { transform: scaleY(1); }
+  93%, 96% { transform: scaleY(.12); }
+}
+@keyframes avatar-antenna {
+  0%, 100% { opacity: .45; }
+  50% { opacity: 1; }
+}
+@keyframes avatar-talk {
+  0%, 100% { transform: scaleY(.5); }
+  50% { transform: scaleY(1.15); }
+}
+@keyframes avatar-listen {
+  0%, 100% { opacity: .25; }
+  50% { opacity: .9; }
+}
+@keyframes avatar-orbit { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar__body,
+  .avatar__eyes,
+  .avatar__antenna-dot,
+  .avatar__halo,
+  .avatar__listen,
+  .avatar__orbit,
+  .avatar__mouth rect { animation: none !important; }
+}

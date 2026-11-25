@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Амадеус — свёрнутый аватар</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="primitives.css">
+<style>
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+
+  /* ---------- рабочий стол ---------- */
+  .desk {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(900px 620px at 22% 18%, color-mix(in srgb, var(--color-accent) 11%, transparent), transparent 62%),
+      radial-gradient(760px 520px at 82% 74%, color-mix(in srgb, var(--color-accent-dim) 18%, transparent), transparent 66%),
+      linear-gradient(160deg, color-mix(in srgb, var(--color-surface) 70%, var(--color-bg)), var(--color-bg) 70%);
+  }
+  .desk::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, var(--hud-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--hud-grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    opacity: .12;
+    mask-image: radial-gradient(90% 80% at 50% 40%, #000 20%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* призрачное окно — чтобы аватар жил поверх реального стола */
+  .ghost {
+    position: absolute;
+    top: 9%; left: 42%;
+    width: 46%; height: 52%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+    box-shadow: var(--shadow-card);
+    opacity: .5;
+    pointer-events: none;
+  }
+  .ghost__bar {
+    height: 30px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .ghost__bar i { width: 5px; height: 5px; border-radius: 50%; background: var(--color-border-input); }
+  .ghost__body { padding: 22px 26px; display: grid; gap: 10px; }
+  .ghost__line { height: 8px; border-radius: 4px; background: var(--color-surface-2); }
+  .ghost__line:nth-child(2) { width: 72%; }
+  .ghost__line:nth-child(3) { width: 46%; }
+
+  /* ---------- панель демо ---------- */
+  .panel {
+    position: absolute;
+    top: 24px; left: 24px;
+    width: 340px;
+    max-height: calc(100vh - 92px);
+    overflow: auto;
+    z-index: 10;
+    padding: 18px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-card);
+  }
+  .panel__head { display: grid; gap: 6px; }
+  .panel__head .hud-label { color: var(--color-accent); }
+  .panel h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-lg-size);
+    line-height: var(--text-lg-line);
+    font-weight: 600;
+    letter-spacing: var(--tracking-title);
+  }
+  .panel p { margin: 0; font-size: var(--text-sm-size); line-height: 1.55; color: var(--color-text-muted); }
+  .group { margin-top: 18px; display: grid; gap: 8px; }
+  .group > .hud-label { color: var(--color-text-faint); }
+
+  .states { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chipbtn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 28px; padding: 0 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease);
+  }
+  .chipbtn:hover { color: var(--color-text); border-color: var(--color-border-input); }
+  .chipbtn[aria-pressed="true"] {
+    color: var(--color-accent);
+    border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  }
+  .chipbtn i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .chipbtn[data-set="thinking"][aria-pressed="true"] { color: var(--color-hud-amber); border-color: color-mix(in srgb, var(--color-hud-amber) 45%, transparent); background: color-mix(in srgb, var(--color-hud-amber) 10%, transparent); }
+  .chipbtn[data-set="error"][aria-pressed="true"] { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 45%, transparent); background: color-mix(in srgb, var(--color-danger) 10%, transparent); }
+  .chipbtn[data-set="muted"][aria-pressed="true"] { color: var(--color-text-faint); border-color: var(--color-border-input); background: var(--color-surface-3); }
+
+  .seg { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg); }
+  .seg button {
+    flex: 1; height: 28px;
+    border: 1px solid transparent; border-radius: var(--radius-xs);
+    background: transparent; color: var(--color-text-muted);
+    font-family: var(--font-mono); font-size: 11px;
+    cursor: pointer;
+  }
+  .seg button:hover { background: var(--color-surface-2); color: var(--color-text); }
+  .seg button[aria-pressed="true"] { background: var(--color-surface-3); border-color: var(--color-border-input); color: var(--color-text); }
+  .size-caption { font-size: var(--text-xs-size); line-height: 1.4; color: var(--color-text-faint); }
+  .size-caption b { color: var(--color-text-muted); font-weight: 500; }
+  .wake {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 26%, var(--color-border));
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  }
+  .wake__word {
+    font-family: var(--font-display);
+    font-size: var(--text-base-size);
+    font-weight: 600;
+    letter-spacing: var(--tracking-title);
+    color: var(--color-accent);
+  }
+  .wake__hint { font-size: var(--text-xs-size); color: var(--color-text-muted); }
+  .mic {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--text-xs-size);
+    line-height: 1.4;
+    color: var(--color-text-muted);
+  }
+  .mic i {
+    flex: 0 0 auto;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--color-warning);
+    box-shadow: 0 0 7px var(--color-warning);
+  }
+  .mic[data-ok="true"] i { background: var(--color-success); box-shadow: 0 0 7px var(--color-success); }
+  .mic[data-ok="false"] i { background: var(--color-danger); box-shadow: 0 0 7px var(--color-danger); }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+  .row label { display: inline-flex; align-items: center; gap: 8px; font-size: var(--text-xs-size); color: var(--color-text-muted); cursor: pointer; }
+  .row input[type="checkbox"] { accent-color: var(--color-accent); }
+  .theme-btn {
+    height: 28px; padding: 0 10px;
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    background: var(--color-surface-2); color: var(--color-text-muted);
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    cursor: pointer;
+  }
+  .theme-btn:hover { color: var(--color-text); border-color: var(--color-border-input); }
+
+  .notes { margin: 18px 0 0; padding: 12px 0 0; border-top: 1px solid var(--color-border); display: grid; gap: 7px; list-style: none; }
+  .notes li { position: relative; padding-left: 14px; font-size: var(--text-xs-size); line-height: 1.5; color: var(--color-text-muted); }
+  .notes li::before { content: ""; position: absolute; left: 0; top: 6px; width: 4px; height: 4px; border-radius: 50%; background: var(--color-accent-dim); }
+  .notes b { color: var(--color-text); font-weight: 500; }
+
+  /* ---------- панель задач ---------- */
+  .taskbar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 44px;
+    z-index: 20;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 14px;
+    border-top: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+    backdrop-filter: blur(18px);
+  }
+  .tb-icon {
+    width: 26px; height: 26px;
+    display: grid; place-items: center;
+    border-radius: var(--radius-xs);
+    border: 1px solid transparent;
+    background: var(--color-surface-2);
+    color: var(--color-text-faint);
+    font-family: var(--font-mono); font-size: 9px;
+  }
+  .tb-icon--active { color: var(--color-accent); border-color: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+  .tb-grow { flex: 1; }
+  .tb-clock { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+
+  /* ---------- аватар ---------- */
+  #orb {
+    position: fixed;
+    right: 32px;
+    bottom: 64px;
+    z-index: 40;
+  }
+  #orb.snapping {
+    transition:
+      left 240ms var(--ease),
+      top 240ms var(--ease),
+      transform var(--motion-base) var(--ease),
+      opacity var(--motion-slow) var(--ease),
+      border-color var(--motion-base) var(--ease),
+      box-shadow var(--motion-base) var(--ease);
+  }
+  #orb:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+
+  .mini[data-wake="true"] { transform: scale(1.04); animation: mini-wake-pop 520ms var(--ease); }
+  .mini[data-wake="true"] .mini__tip {
+    opacity: 1;
+    color: var(--mini-tone);
+    border-color: color-mix(in srgb, var(--mini-tone) 40%, var(--color-border));
+    transition-delay: 0ms;
+  }
+  @keyframes mini-wake-pop {
+    0% { transform: scale(.92); }
+    55% { transform: scale(1.09); }
+    100% { transform: scale(1.04); }
+  }
+
+  .mini[data-tip="below"] .mini__tip { bottom: auto; top: calc(100% + 10px); }
+
+  /* ---------- развёрнутое окно ---------- */
+  .window {
+    position: fixed;
+    inset: 4vh 5vw 10vh;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    box-shadow: var(--shadow-pop);
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(8px) scale(.99);
+    transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+  }
+  .window[hidden] { display: none; }
+  .window.open { opacity: 1; transform: none; }
+  .window__bar {
+    height: 34px;
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 10px 0 12px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+  }
+  .window__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
+  .window__bar .tb-grow { flex: 1; }
+  .window__bar button {
+    height: 22px; padding: 0 9px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+    cursor: pointer;
+  }
+  .window__bar button:hover { color: var(--color-text); border-color: var(--color-border-input); }
+  .window iframe { flex: 1; width: 100%; border: 0; background: var(--color-bg); }
+
+  /* ---------- статус ---------- */
+  .status {
+    position: fixed;
+    left: 50%; bottom: 64px;
+    transform: translateX(-50%) translateY(6px);
+    z-index: 60;
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-base) var(--ease), transform var(--motion-base) var(--ease);
+  }
+  .status.show { opacity: 1; transform: translateX(-50%); }
+
+  @media (max-width: 860px) {
+    .panel { width: calc(100% - 48px); max-height: 64vh; overflow: auto; }
+    .ghost { display: none; }
+    .window { inset: 2vh 3vw 12vh; }
+  }
+</style>
+</head>
+<body>
+<div class="desk">
+  <div class="ghost" aria-hidden="true">
+    <div class="ghost__bar"><i></i><i></i><i></i></div>
+    <div class="ghost__body">
+      <div class="ghost__line"></div>
+      <div class="ghost__line"></div>
+      <div class="ghost__line"></div>
+    </div>
+  </div>
+
+  <aside class="panel" aria-label="Параметры демонстрации">
+    <div class="panel__head">
+      <span class="hud-label">свёрнутый режим</span>
+      <h1>Аватар-ядро</h1>
+      <p>Когда окно свёрнуто, на экране остаётся живое ядро. Оно просыпается от кодового слова и слушает команду — без кликов.</p>
+    </div>
+
+    <div class="group">
+      <span class="hud-label">состояние</span>
+      <div class="states" role="group" aria-label="Состояние ассистента">
+        <button class="chipbtn" data-set="idle" aria-pressed="true"><i></i>Готов</button>
+        <button class="chipbtn" data-set="listening" aria-pressed="false"><i></i>Слушаю</button>
+        <button class="chipbtn" data-set="thinking" aria-pressed="false"><i></i>Думаю</button>
+        <button class="chipbtn" data-set="speaking" aria-pressed="false"><i></i>Говорю</button>
+        <button class="chipbtn" data-set="error" aria-pressed="false"><i></i>Ошибка</button>
+        <button class="chipbtn" data-set="muted" aria-pressed="false"><i></i>Микрофон выкл.</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="hud-label">размер</span>
+      <div class="seg" role="group" aria-label="Размер аватара">
+        <button data-size="40" aria-pressed="false">40</button>
+        <button data-size="64" aria-pressed="true">64</button>
+        <button data-size="88" aria-pressed="false">88</button>
+      </div>
+      <span class="size-caption"><b>40</b> — трей · <b>64</b> — экран · <b>88</b> — крупный</span>
+    </div>
+
+    <div class="group">
+      <span class="hud-label">активация словом</span>
+      <div class="wake">
+        <span class="wake__word">«Амадеус»</span>
+        <span class="wake__hint">скажите — и говорите команду</span>
+      </div>
+      <div class="mic" id="mic" data-ok="">
+        <i></i>
+        <span id="micText">Микрофон: запрашиваю доступ…</span>
+      </div>
+      <span class="size-caption">Слово настраивается в настройках. Если микрофона нет — нажмите <b>W</b>, чтобы увидеть сценарий без кликов.</span>
+    </div>
+
+    <div class="row">
+      <label><input type="checkbox" id="dim" checked> Приглушать в покое</label>
+      <button class="theme-btn" id="theme">Тема</button>
+    </div>
+
+    <ul class="notes">
+      <li><b>Скажите «Амадеус»</b> — и говорите команду, клики не нужны.</li>
+      <li><b>Клик</b> — развернуть окно (необязательно), <b>Esc</b> — свернуть, перетаскивание — прилипание к углу.</li>
+      <li>В покое гаснет до 45 %, слово работает; анимации отключаются системной настройкой «уменьшить движение».</li>
+    </ul>
+  </aside>
+
+  <section class="window" id="window" hidden aria-label="Развёрнутое окно ассистента">
+    <div class="window__bar">
+      <span class="window__dot"></span>
+      <span>Амадеус — рабочее пространство</span>
+      <span class="tb-grow"></span>
+      <button id="collapse" type="button">Свернуть</button>
+    </div>
+    <iframe src="preview.html" title="Рабочее пространство Амадеуса"></iframe>
+  </section>
+
+  <div class="taskbar" aria-hidden="true">
+    <span class="tb-icon">A</span>
+    <span class="tb-icon">T</span>
+    <span class="tb-icon tb-icon--active">◉</span>
+    <span class="tb-icon">P</span>
+    <span class="tb-grow"></span>
+    <span class="tb-clock" id="clock">17:42</span>
+  </div>
+
+  <button
+    class="mini"
+    id="orb"
+    type="button"
+    data-state="idle"
+    data-align="right"
+    style="--mini-size:64px"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    aria-label="Амадеус: Готов. Открыть окно"
+    title=""
+  >
+    <svg viewBox="0 0 120 120" class="mini__svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="demo-core" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="var(--mini-tone)" stop-opacity=".9"/>
+          <stop offset="55%" stop-color="var(--mini-tone)" stop-opacity=".35"/>
+          <stop offset="100%" stop-color="var(--mini-tone)" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <g class="mini__spin mini__spin--slow" stroke="var(--color-hud-ring)" stroke-width="1" opacity=".5">
+        <circle cx="60" cy="60" r="55" fill="none" stroke-dasharray="1 4.8" stroke-linecap="round"/>
+      </g>
+      <g class="mini__spin mini__spin--rev" fill="none" stroke-linecap="round">
+        <circle cx="60" cy="60" r="47" stroke="var(--mini-tone)" stroke-opacity=".3" stroke-width="1" stroke-dasharray="12 10"/>
+        <path d="M60 13a47 47 0 0 1 33 14" stroke="var(--mini-tone)" stroke-width="1.6" stroke-opacity=".9"/>
+      </g>
+      <g fill="none" stroke="var(--mini-tone)" stroke-width=".9" opacity=".55">
+        <circle cx="60" cy="60" r="30" stroke-opacity=".55"/>
+        <ellipse cx="60" cy="60" rx="30" ry="12"/>
+        <ellipse cx="60" cy="60" rx="12" ry="30"/>
+      </g>
+      <circle class="mini__halo" cx="60" cy="60" r="27" fill="url(#demo-core)"/>
+      <circle class="mini__core" cx="60" cy="60" r="17" fill="url(#demo-core)"/>
+      <circle cx="60" cy="60" r="3.4" fill="var(--mini-tone)"/>
+      <g class="mini__muted" stroke="var(--color-text-faint)" stroke-width="2" stroke-linecap="round">
+        <line x1="43" y1="77" x2="77" y2="43"/>
+      </g>
+    </svg>
+    <span class="mini__alert" aria-hidden="true">!</span>
+    <span class="mini__tip" aria-hidden="true">Готов</span>
+  </button>
+
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+(() => {
+  const LABEL = {
+    idle: "Готов",
+    listening: "Слушаю",
+    thinking: "Думаю",
+    speaking: "Говорю",
+    error: "Ошибка",
+    muted: "Микрофон выключен",
+  };
+
+  const orb = document.getElementById("orb");
+  const tip = orb.querySelector(".mini__tip");
+  const win = document.getElementById("window");
+  const collapseBtn = document.getElementById("collapse");
+  const dimBox = document.getElementById("dim");
+  const status = document.getElementById("status");
+  const mic = document.getElementById("mic");
+  const micText = document.getElementById("micText");
+  const stateButtons = [...document.querySelectorAll(".chipbtn")];
+  const sizeButtons = [...document.querySelectorAll(".seg [data-size]")];
+
+  let statusTimer;
+  function say(text) {
+    status.textContent = text;
+    status.classList.add("show");
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => status.classList.remove("show"), 2200);
+  }
+
+  /* ---------- состояние ---------- */
+  function setState(next) {
+    orb.dataset.state = next;
+    if (orb.dataset.wake !== "true") tip.textContent = LABEL[next];
+    orb.setAttribute("aria-label", `Амадеус: ${LABEL[next]}. Открыть окно`);
+    stateButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.set === next)));
+    resetDim();
+  }
+  stateButtons.forEach((b) =>
+    b.addEventListener("click", () => {
+      if (orb.dataset.wake === "true") setWake(false);
+      setState(b.dataset.set);
+    }),
+  );
+
+  /* ---------- размер ---------- */
+  function setSize(value) {
+    orb.style.setProperty("--mini-size", value + "px");
+    sizeButtons.forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.size === value)));
+    resetDim();
+  }
+  sizeButtons.forEach((b) => b.addEventListener("click", () => setSize(b.dataset.size)));
+
+  /* ---------- тема ---------- */
+  const themeBtn = document.getElementById("theme");
+  themeBtn.addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    document.documentElement.dataset.theme = next;
+    resetDim();
+  });
+
+  /* ---------- приглушение в покое ---------- */
+  let dimTimer;
+  function resetDim() {
+    orb.dataset.dim = "false";
+    clearTimeout(dimTimer);
+    if (!dimBox.checked) return;
+    dimTimer = setTimeout(() => {
+      if (orb.dataset.state === "idle") orb.dataset.dim = "true";
+    }, 8000);
+  }
+  dimBox.addEventListener("change", resetDim);
+  resetDim();
+
+  /* ---------- активация словом ---------- */
+  const WAKE_RE = /(?:эй[,\s]+)?амадеус/i;
+  let wakeActive = false;
+  let wakeTimer;
+
+  function setWake(on) {
+    wakeActive = on;
+    orb.dataset.wake = on ? "true" : "false";
+    clearTimeout(wakeTimer);
+    if (on) {
+      orb.dataset.dim = "false";
+      wakeTimer = setTimeout(() => {
+        if (!wakeActive) return;
+        setWake(false);
+        setState("idle");
+        say("Не расслышал — скажите «Амадеус» снова");
+      }, 7000);
+    } else {
+      tip.textContent = LABEL[orb.dataset.state] || LABEL.idle;
+    }
+  }
+
+  function wake() {
+    setState("listening");
+    setWake(true);
+    say("Слышу вас");
+  }
+
+  function runCommand(text) {
+    setWake(false);
+    setState("thinking");
+    say(`Услышал: «${text}»`);
+    setTimeout(() => {
+      setState("speaking");
+      setTimeout(() => {
+        setState("idle");
+        say("Готов");
+      }, 1800);
+    }, 900);
+  }
+
+  function setMic(ok, text) {
+    mic.dataset.ok = ok === true ? "true" : ok === false ? "false" : "";
+    micText.textContent = text;
+  }
+
+  /* Распознавание в демо — браузерное. В продукте кодовое слово ловит локальный
+     keyword spotter (openWakeWord / Porcupine), аудио никуда не уходит. */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognizer = null;
+  let voiceWanted = true;
+
+  function handleSpeech(text, isFinal) {
+    if (!text) return;
+    if (!wakeActive && WAKE_RE.test(text)) {
+      const rest = text.replace(WAKE_RE, "").replace(/^[\s,.:;!—–-]+/, "").trim();
+      wake();
+      if (isFinal && rest.length > 1) runCommand(rest);
+      return;
+    }
+    if (wakeActive && isFinal) {
+      const clean = text.replace(WAKE_RE, "").replace(/^[\s,.:;!—–-]+/, "").trim();
+      if (clean.length > 1) runCommand(clean);
+    }
+  }
+
+  function startVoice() {
+    if (!SR) {
+      setMic(false, "Микрофон недоступен — нажмите W");
+      return;
+    }
+    try {
+      recognizer = new SR();
+      recognizer.lang = "ru-RU";
+      recognizer.continuous = true;
+      recognizer.interimResults = true;
+      recognizer.onstart = () => setMic(true, "Микрофон: жду «Амадеус»");
+      recognizer.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          voiceWanted = false;
+          setMic(false, "Нет доступа к микрофону — нажмите W");
+        } else if (e.error === "audio-capture") {
+          voiceWanted = false;
+          setMic(false, "Микрофон не найден — нажмите W");
+        }
+      };
+      recognizer.onend = () => {
+        if (!voiceWanted) return;
+        setTimeout(() => {
+          try {
+            recognizer.start();
+          } catch {
+            /* уже запущено */
+          }
+        }, 600);
+      };
+      recognizer.onresult = (e) => {
+        let finalText = "";
+        let interimText = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const r = e.results[i];
+          if (r.isFinal) finalText += r[0].transcript;
+          else interimText += r[0].transcript;
+        }
+        if (interimText.trim()) handleSpeech(interimText.trim(), false);
+        if (finalText.trim()) handleSpeech(finalText.trim(), true);
+      };
+      recognizer.start();
+      setTimeout(() => {
+        if (mic.dataset.ok === "") setMic(false, "Микрофон не отвечает — нажмите W");
+      }, 6000);
+    } catch {
+      setMic(false, "Микрофон недоступен — нажмите W");
+    }
+  }
+  startVoice();
+
+  /* ---------- окно ---------- */
+  function openWindow() {
+    win.hidden = false;
+    requestAnimationFrame(() => win.classList.add("open"));
+    orb.setAttribute("aria-expanded", "true");
+    collapseBtn.focus();
+  }
+  function closeWindow() {
+    if (win.hidden) return;
+    win.classList.remove("open");
+    orb.setAttribute("aria-expanded", "false");
+    setTimeout(() => {
+      win.hidden = true;
+      orb.focus();
+    }, 180);
+  }
+  collapseBtn.addEventListener("click", closeWindow);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeWindow();
+    if (e.key === "F4") {
+      e.preventDefault();
+      if (wakeActive) {
+        setWake(false);
+        setState("idle");
+      } else {
+        wake();
+      }
+    }
+    if (e.key.toLowerCase() === "w" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
+      if (!wakeActive) wake();
+      else runCommand("открой отчёт по проекту");
+    }
+  });
+
+  /* ---------- перетаскивание и прилипание ---------- */
+  let drag = null;
+  let suppressClick = false;
+
+  function updateTipAlign() {
+    const r = orb.getBoundingClientRect();
+    const center = r.left + r.width / 2;
+    orb.dataset.align = center > innerWidth - 110 ? "right" : center < 110 ? "left" : "center";
+  }
+
+  orb.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || !e.isPrimary) return;
+    const r = orb.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false, w: r.width, h: r.height };
+    orb.classList.remove("snapping");
+    orb.setPointerCapture(e.pointerId);
+    resetDim();
+  });
+
+  orb.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 4) drag.moved = true;
+    if (!drag.moved) return;
+    const x = Math.min(Math.max(8, e.clientX - drag.dx), innerWidth - drag.w - 8);
+    const y = Math.min(Math.max(8, e.clientY - drag.dy), innerHeight - drag.h - 8);
+    orb.style.left = x + "px";
+    orb.style.top = y + "px";
+    orb.style.right = "auto";
+    orb.style.bottom = "auto";
+    updateTipAlign();
+  });
+
+  orb.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const moved = drag.moved;
+    drag = null;
+    if (!moved) return;
+    suppressClick = true;
+    const r = orb.getBoundingClientRect();
+    const margin = 24;
+    const bottom = 60;
+    const toLeft = r.left + r.width / 2 < innerWidth / 2;
+    const toTop = r.top + r.height / 2 < (innerHeight - 44) / 2;
+    const x = toLeft ? margin : innerWidth - r.width - margin;
+    const y = toTop ? margin : innerHeight - r.height - bottom;
+    orb.dataset.tip = toTop ? "below" : "above";
+    orb.classList.add("snapping");
+    orb.style.left = x + "px";
+    orb.style.top = y + "px";
+    setTimeout(() => orb.classList.remove("snapping"), 280);
+    updateTipAlign();
+    say("Позиция сохранена");
+  });
+
+  orb.addEventListener("click", () => {
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
+    openWindow();
+  });
+
+  /* ---------- часы ---------- */
+  const clock = document.getElementById("clock");
+  function tick() {
+    clock.textContent = new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  }
+  tick();
+  setInterval(tick, 30000);
+
+  /* ---------- параметры для скриншотов: ?state=listening&size=88&theme=light&open=1 ---------- */
+  const params = new URLSearchParams(location.search);
+  const presetState = params.get("state");
+  const presetSize = params.get("size");
+  if (presetState && Object.hasOwn(LABEL, presetState)) setState(presetState);
+  if (presetSize && ["40", "64", "88"].includes(presetSize)) setSize(presetSize);
+  if (params.get("theme") === "light") document.documentElement.dataset.theme = "light";
+  if (params.get("wake") === "1") wake();
+  if (params.get("open") === "1") openWindow();
+})();
+</script>
+</body>
+</html>

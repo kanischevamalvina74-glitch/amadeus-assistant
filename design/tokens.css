@@ -1,0 +1,254 @@
+/* Дизайн-токены. Не использовать сырые hex в компонентах — только var(--color-*).
+   Базовая тема — тёмный HUD. Светлая — «дневной HUD». */
+
+:root {
+  color-scheme: dark;
+
+  --color-bg: #05070A;
+  --color-surface: #0B1017;
+  --color-surface-2: #111923;
+  --color-surface-3: #16212D;
+  --color-border: #1B2836;
+  --color-border-input: #4E6B82;
+  --color-text: #E9F3F8;
+  --color-text-muted: #9AAFBF;
+  --color-text-faint: #6E8296;
+  --color-accent: #54E0FF;
+  --color-accent-strong: #8FEDFF;
+  --color-accent-dim: #1F7F96;
+  --color-on-accent: #04222B;
+  --color-danger: #FF7B72;
+  --color-danger-strong: #C4302B;
+  --color-success: #5AE6A0;
+  --color-warning: #FFC24D;
+  --color-hud-grid: #12303D;
+  --color-hud-ring: #2C6E85;
+  --color-hud-amber: #FFB020;
+  --color-focus: #54E0FF;
+
+  --font-display: "Exo 2", Manrope, system-ui, sans-serif;
+  --font-sans: Inter, Manrope, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --text-xs-size: 11px;   --text-xs-line: 16px;   --text-xs-weight: 500;
+  --text-sm-size: 13px;   --text-sm-line: 20px;   --text-sm-weight: 400;
+  --text-base-size: 15px; --text-base-line: 24px; --text-base-weight: 400;
+  --text-lg-size: 19px;   --text-lg-line: 28px;   --text-lg-weight: 600;
+  --text-xl-size: 25px;   --text-xl-line: 32px;   --text-xl-weight: 600;
+  --text-2xl-size: 33px;  --text-2xl-line: 40px;  --text-2xl-weight: 700;
+  --text-display-size: 46px; --text-display-line: 50px; --text-display-weight: 700;
+
+  --tracking-label: .14em;
+  --tracking-title: .02em;
+  --tracking-tight: -.01em;
+
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 12px 32px rgba(0, 0, 0, .45);
+  --shadow-pop: 0 20px 60px rgba(0, 0, 0, .6);
+  --shadow-glow: 0 0 0 1px rgba(84, 224, 255, .28), 0 0 28px rgba(84, 224, 255, .22);
+  --shadow-glow-amber: 0 0 0 1px rgba(255, 176, 32, .3), 0 0 24px rgba(255, 176, 32, .18);
+
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --motion-hud: 1600ms;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --ease-hud: cubic-bezier(.45, .05, .55, .95);
+
+  --layout-header: 52px;
+  --layout-status: 28px;
+  --layout-rail: 56px;
+  --layout-sidebar: 272px;
+  --layout-panel: 344px;
+  --layout-content-max: 940px;
+  --layout-hud: 300px;
+  --layout-terminal: 280px;
+
+  /* HUD-фактуры: сетка, виньетка, скан */
+  --hud-grid-size: 28px;
+  --hud-grid-line: color-mix(in srgb, var(--color-hud-grid) 70%, transparent);
+  --hud-vignette: radial-gradient(120% 90% at 50% 0%, transparent 45%, rgba(0, 0, 0, .55) 100%);
+  --hud-scan: linear-gradient(to bottom, transparent, rgba(84, 224, 255, .055), transparent);
+  --app-glow: rgba(84, 224, 255, .07);
+
+  /* Реактор: отдельные переменные, чтобы SVG читался в обеих темах */
+  --reactor-core: #D9FBFF;
+  --reactor-mid: #54E0FF;
+  --reactor-rim: #1F7F96;
+  --reactor-glow: rgba(84, 224, 255, .22);
+  --reactor-line: #54E0FF;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: #EEF4F8;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #E6EEF5;
+  --color-surface-3: #D8E4EE;
+  --color-border: #C6D5E1;
+  --color-border-input: #6B8199;
+  --color-text: #081520;
+  --color-text-muted: #42586B;
+  --color-text-faint: #53687C;
+  --color-accent: #0A6B82;
+  --color-accent-strong: #07505F;
+  --color-accent-dim: #8FC7D6;
+  --color-on-accent: #FFFFFF;
+  --color-danger: #B3261E;
+  --color-danger-strong: #8C1D17;
+  --color-success: #106B45;
+  --color-warning: #7A5200;
+  --color-hud-grid: #C9DCE8;
+  --color-hud-ring: #7FB4C6;
+  --color-hud-amber: #A86400;
+  --color-focus: #0A6B82;
+
+  --shadow-card: 0 1px 2px rgba(8, 21, 32, .06), 0 10px 28px rgba(8, 21, 32, .08);
+  --shadow-pop: 0 18px 48px rgba(8, 21, 32, .16);
+  --shadow-glow: 0 0 0 1px rgba(10, 107, 130, .25), 0 0 28px rgba(10, 107, 130, .12);
+  --shadow-glow-amber: 0 0 0 1px rgba(168, 100, 0, .25), 0 0 22px rgba(168, 100, 0, .12);
+
+  --hud-grid-line: color-mix(in srgb, var(--color-hud-grid) 80%, transparent);
+  --hud-vignette: radial-gradient(120% 90% at 50% 0%, transparent 55%, rgba(8, 21, 32, .08) 100%);
+  --hud-scan: linear-gradient(to bottom, transparent, rgba(10, 107, 130, .04), transparent);
+  --app-glow: rgba(10, 107, 130, .05);
+
+  --reactor-core: #FFFFFF;
+  --reactor-mid: #0A6B82;
+  --reactor-rim: #248AA3;
+  --reactor-glow: rgba(10, 107, 130, .16);
+  --reactor-line: #0A6B82;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base-size);
+  line-height: var(--text-base-line);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  color: var(--color-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+/* --- HUD-утилиты ---------------------------------------------------------- */
+
+/* Технический лейбл: заглавные, разрядка, моноширинный. */
+.hud-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-line);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Число/метрика: табличные цифры, чтобы не дёргались. */
+.hud-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* Фоновая сетка. Кладётся на ::before контейнера. */
+.hud-grid {
+  background-image:
+    linear-gradient(to right, var(--hud-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--hud-grid-line) 1px, transparent 1px);
+  background-size: var(--hud-grid-size) var(--hud-grid-size);
+  opacity: .28;
+  pointer-events: none;
+}
+
+/* Уголки рамки — четыре засечки, как в HUD. */
+.hud-corners {
+  position: relative;
+}
+
+.hud-corners::before,
+.hud-corners::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--color-accent);
+  border-style: solid;
+  opacity: .7;
+  pointer-events: none;
+}
+
+.hud-corners::before {
+  top: -1px;
+  left: -1px;
+  border-width: 1px 0 0 1px;
+}
+
+.hud-corners::after {
+  right: -1px;
+  bottom: -1px;
+  border-width: 0 1px 1px 0;
+}
+
+/* Тонкая светящаяся линия-разделитель. */
+.hud-rule {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

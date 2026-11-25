@@ -1,0 +1,15 @@
+{
+  "name": "demo-note",
+  "version": "1.0.0",
+  "description": "Демонстрационный плагин без исполняемого кода: объявляет разрешения, настройки и тестовое действие.",
+  "entrypoint": "manifest://demo-note",
+  "permissions": ["memory.read", "memory.write"],
+  "config_schema": [
+    { "key": "prefix", "label": "Префикс заметки", "type": "string", "default": "Заметка" },
+    { "key": "notify", "label": "Уведомлять о результате", "type": "boolean", "default": false }
+  ],
+  "actions": [
+    { "name": "test", "result": "Плагин подключён и настроен" },
+    { "name": "note", "result": "Заметка принята" }
+  ]
+}

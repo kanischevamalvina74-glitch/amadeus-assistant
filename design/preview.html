@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Амадеус — предпросмотр дизайн-системы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* ---------- каркас ---------- */
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, var(--app-glow), transparent 60%),
+      var(--color-bg);
+  }
+
+  /* ---------- статус-строка ---------- */
+  .statusbar {
+    height: var(--layout-status);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: 0 var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+    flex: 0 0 auto;
+  }
+  .statusbar .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+  }
+  .statusbar .sep { color: var(--color-border); }
+  .statusbar .grow { flex: 1; }
+  .statusbar strong { color: var(--color-text-muted); font-weight: 500; }
+  .statusbar .amber { color: var(--color-hud-amber); }
+
+  /* ---------- оболочка ---------- */
+  .shell {
+    flex: 1;
+    display: grid;
+    grid-template-columns: var(--layout-rail) var(--layout-sidebar) minmax(0, 1fr) var(--layout-panel);
+    min-height: 0;
+  }
+
+  /* ---------- рельс ---------- */
+  .rail {
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 0;
+  }
+  .rail button {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-faint);
+    cursor: pointer;
+    position: relative;
+    transition: color var(--motion-fast) var(--ease), background var(--motion-fast) var(--ease);
+  }
+  .rail button:hover { color: var(--color-text); background: var(--color-surface-2); }
+  .rail button[aria-current="page"] {
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+  .rail button[aria-current="page"]::before {
+    content: "";
+    position: absolute; left: -12px; top: 9px; bottom: 9px;
+    width: 2px; border-radius: 2px;
+    background: var(--color-accent);
+    box-shadow: 0 0 10px var(--color-accent);
+  }
+  .rail .spacer { flex: 1; }
+  .rail svg { width: 18px; height: 18px; }
+
+  /* ---------- сайдбар ---------- */
+  .sidebar {
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  }
+  .sidebar-head {
+    padding: 14px 14px 10px;
+    display: flex; align-items: baseline; gap: 8px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .sidebar-head h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+  .count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-accent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+  .search {
+    margin: 10px 12px;
+    display: flex; align-items: center; gap: 8px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-text-faint);
+    font-size: 12px;
+  }
+  .search kbd { margin-left: auto; }
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-text-faint);
+    border: 1px solid var(--color-border);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: 1px 4px;
+    background: var(--color-surface-2);
+  }
+  .threads { overflow: auto; padding: 4px 8px 12px; }
+  .group-label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 6px 6px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+  }
+  .group-label::after { content: ""; flex: 1; height: 1px; background: var(--color-border); }
+  .thread {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 8px 8px 8px 10px;
+    border-radius: var(--radius-sm);
+    border-left: 2px solid transparent;
+    cursor: pointer;
+  }
+  .thread:hover { background: var(--color-surface-2); }
+  .thread[data-active="true"] {
+    background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+    border-left-color: var(--color-accent);
+  }
+  .thread .title { font-size: 12.5px; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .thread .time { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-faint); }
+  .thread .snippet { grid-column: 1 / -1; font-size: 11.5px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---------- сцена ---------- */
+  .stage {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+  }
+  .stage::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, var(--hud-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--hud-grid-line) 1px, transparent 1px);
+    background-size: var(--hud-grid-size) var(--hud-grid-size);
+    opacity: .22;
+    pointer-events: none;
+    mask-image: radial-gradient(80% 60% at 50% 30%, #000 30%, transparent 100%);
+  }
+  .stage-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--color-border);
+    position: relative;
+    z-index: 1;
+  }
+  .stage-head .name {
+    font-family: var(--font-display);
+    font-size: 13px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+  .stage-head .model {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--color-text-faint);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    padding: 2px 6px;
+  }
+  .stage-head .grow { flex: 1; }
+
+  /* ---------- HUD-сцена ---------- */
+  .hud-scene {
+    position: relative;
+    margin: 0 20px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-surface) 35%, transparent);
+    overflow: hidden;
+    box-shadow: inset 0 0 60px var(--reactor-glow);
+    height: var(--layout-hud);
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    z-index: 1;
+  }
+  .hud-scene::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: var(--hud-vignette);
+    pointer-events: none;
+  }
+  .hud-scene .hud-corners,
+  .hud-scene::before {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--color-accent), var(--color-accent)) left top / 16px 1px no-repeat,
+      linear-gradient(var(--color-accent), var(--color-accent)) left top / 1px 16px no-repeat,
+      linear-gradient(var(--color-accent), var(--color-accent)) right top / 16px 1px no-repeat,
+      linear-gradient(var(--color-accent), var(--color-accent)) right top / 1px 16px no-repeat,
+      linear-gradient(var(--color-accent), var(--color-accent)) left bottom / 16px 1px no-repeat,
+      linear-gradient(var(--color-accent), var(--color-accent)) left bottom / 1px 16px no-repeat,
+      linear-gradient(var(--color-accent), var(--color-accent)) right bottom / 16px 1px no-repeat,
+      linear-gradient(var(--color-accent), var(--color-accent)) right bottom / 1px 16px no-repeat;
+    opacity: .55;
+    border-radius: inherit;
+  }
+  .hud-scene .scan {
+    position: absolute; left: 0; right: 0; top: -30%;
+    height: 22%;
+    background: var(--hud-scan);
+    animation: scan 7s var(--ease-hud) infinite;
+    pointer-events: none;
+  }
+  @keyframes scan { 0% { top: -25%; } 100% { top: 110%; } }
+  .reactor { width: 248px; height: 248px; overflow: visible; }
+  .reactor .spin-slow { transform-origin: 50% 50%; animation: spin 46s linear infinite; }
+  .reactor .spin-rev  { transform-origin: 50% 50%; animation: spin 28s linear infinite reverse; }
+  .reactor .spin-fast { transform-origin: 50% 50%; animation: spin 14s linear infinite; }
+  .reactor .pulse { animation: pulse 4.2s var(--ease-hud) infinite; }
+  .reactor .breathe { animation: breathe 3.4s var(--ease-hud) infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+  @keyframes breathe { 0%,100% { r: 54; opacity: .55; } 50% { r: 58; opacity: .9; } }
+
+  [data-theme="light"] .reactor .glow-core { opacity: .16; }
+  [data-theme="light"] .reactor .halo { opacity: .35; }
+  [data-theme="light"] .reactor .pulse { stroke-opacity: .5; }
+  .hud-meta {
+    position: absolute;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+    line-height: 1.9;
+    z-index: 2;
+  }
+  .hud-meta b { color: var(--color-text-muted); font-weight: 500; }
+  .hud-meta .v { color: var(--color-accent); }
+  .hud-meta.left { left: 24px; top: 28px; }
+  .hud-meta.right { right: 24px; top: 28px; text-align: right; }
+  .hud-meta.bottom { left: 24px; bottom: 18px; }
+  .hud-meta.bottom-r { right: 24px; bottom: 18px; text-align: right; }
+  .tick { display: inline-block; width: 22px; height: 1px; background: var(--color-hud-ring); vertical-align: middle; margin-right: 6px; }
+
+  .hud-caption {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--color-text-faint);
+    display: flex; align-items: center; gap: 8px;
+    z-index: 2;
+  }
+  .hud-caption .live { color: var(--color-accent); }
+
+  /* ---------- голос ---------- */
+  .voice {
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 20px 14px;
+    position: relative; z-index: 1;
+  }
+  .wave {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    gap: 3px; height: 34px;
+  }
+  .wave i {
+    display: block; width: 2px; border-radius: 2px;
+    background: linear-gradient(to top, var(--color-accent-dim), var(--color-accent));
+    animation: wave 1.5s var(--ease-hud) infinite;
+    opacity: .85;
+  }
+  @keyframes wave { 0%,100% { height: 6px; opacity: .35; } 50% { height: var(--h); opacity: 1; } }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 36px; padding: 0 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease);
+  }
+  .btn:hover { background: var(--color-surface-3); border-color: var(--color-border-input); }
+  .btn.primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-on-accent);
+    font-weight: 600;
+    box-shadow: 0 0 24px var(--reactor-glow);
+  }
+  .btn.primary:hover { background: var(--color-accent-strong); }
+  .btn.ghost { background: transparent; }
+
+  /* ---------- чат ---------- */
+  .chat {
+    flex: 1;
+    overflow: auto;
+    padding: 4px 20px 16px;
+    display: flex; flex-direction: column; gap: 14px;
+    position: relative; z-index: 1;
+    max-width: var(--layout-content-max);
+    width: 100%;
+    margin: 0 auto;
+  }
+  .msg { display: grid; grid-template-columns: 112px 1fr; gap: 14px; }
+  .msg .who {
+    font-family: var(--font-mono);
+    font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--color-text-faint);
+    padding-top: 3px;
+    white-space: nowrap;
+  }
+  .msg .who .mark { display: inline-block; margin-right: 4px; margin-bottom: 0; }
+  .msg .who .mark { display: inline-block; color: var(--color-accent); margin-right: 4px; }
+  .msg.assistant .who .mark { color: var(--color-hud-amber); }
+  .msg .body { font-size: 14px; line-height: 1.62; color: var(--color-text); }
+  .msg.user .body {
+    color: var(--color-text);
+    border-left: 1px solid var(--color-border);
+    padding-left: 14px;
+  }
+  .msg.assistant .body { border-left: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent); padding-left: 14px; }
+
+  .tool-line {
+    display: flex; width: max-content; align-items: center; gap: 8px;
+    margin: 8px 0 6px;
+    padding: 4px 8px;
+    border: 1px dashed var(--color-border-input);
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em;
+    color: var(--color-text-muted);
+    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+  }
+  .tool-line .ok { color: var(--color-success); }
+  .code {
+    margin-top: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    font-family: var(--font-mono); font-size: 11.5px; line-height: 1.7;
+    color: var(--color-text-muted);
+    padding: 10px 12px;
+    white-space: pre;
+    overflow: auto;
+  }
+  .code .k { color: var(--color-accent); }
+  .code .s { color: var(--color-success); }
+
+  /* ---------- композер ---------- */
+  .composer-wrap {
+    padding: 0 20px 16px;
+    position: relative; z-index: 1;
+    max-width: var(--layout-content-max);
+    width: 100%;
+    margin: 0 auto;
+  }
+  .composer {
+    display: flex; align-items: flex-end; gap: 10px;
+    border: 1px solid var(--color-border-input);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    padding: 10px 10px 10px 14px;
+    box-shadow: 0 0 0 1px rgba(84,224,255,.06), 0 12px 30px rgba(0,0,0,.4);
+  }
+  .composer:focus-within { border-color: var(--color-accent); box-shadow: var(--shadow-glow); }
+  .composer .input { flex: 1; font-size: 13.5px; color: var(--color-text-muted); padding: 6px 0; }
+  .composer .icon-btn {
+    width: 32px; height: 32px; display: grid; place-items: center;
+    border: 1px solid transparent; border-radius: var(--radius-sm);
+    background: transparent; color: var(--color-text-faint); cursor: pointer;
+  }
+  .composer .icon-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+  .composer .send {
+    width: 32px; height: 32px; display: grid; place-items: center;
+    border: 0; border-radius: var(--radius-sm);
+    background: var(--color-accent); color: var(--color-on-accent); cursor: pointer;
+  }
+  .hints {
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 2px 0;
+    font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--color-text-faint);
+  }
+
+  /* ---------- правая панель ---------- */
+  .panel {
+    border-left: 1px solid var(--color-border);
+    display: flex; flex-direction: column; min-height: 0;
+    background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  }
+  .panel-head {
+    padding: 14px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-head h2 {
+    margin: 0; font-family: var(--font-display);
+    font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  }
+  .panel-head .grow { flex: 1; }
+  .panel-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+
+  .metric {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    padding: 10px 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric .top { display: flex; align-items: baseline; gap: 8px; }
+  .metric .lbl {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--color-text-faint);
+  }
+  .metric .val {
+    margin-left: auto;
+    font-family: var(--font-mono); font-size: 17px; font-weight: 600;
+    color: var(--color-text); font-variant-numeric: tabular-nums;
+  }
+  .metric .unit { font-size: 10px; color: var(--color-text-faint); margin-left: 2px; }
+  .metric svg { display: block; width: 100%; height: 26px; margin-top: 6px; }
+  .metric .bar {
+    height: 3px; border-radius: 2px; margin-top: 8px;
+    background: var(--color-surface-3); overflow: hidden;
+  }
+  .metric .bar i { display: block; height: 100%; background: var(--color-accent); }
+  .metric.warn .val { color: var(--color-hud-amber); }
+  .metric.warn .bar i { background: var(--color-hud-amber); }
+
+  .tools { display: flex; flex-direction: column; gap: 2px; }
+  .tool {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 8px; border-radius: var(--radius-xs);
+    font-size: 12px; color: var(--color-text-muted);
+  }
+  .tool:hover { background: var(--color-surface-2); color: var(--color-text); }
+  .tool .led { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+  .tool .led.off { background: var(--color-text-faint); box-shadow: none; }
+  .tool .led.warn { background: var(--color-hud-amber); box-shadow: 0 0 6px var(--color-hud-amber); }
+  .tool .tag {
+    margin-left: auto; font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: .1em; color: var(--color-text-faint);
+    border: 1px solid var(--color-border); border-radius: 3px; padding: 1px 4px;
+  }
+
+  .log { display: flex; flex-direction: column; gap: 9px; }
+  .log .row { display: grid; grid-template-columns: 44px 1fr; gap: 8px; font-size: 11.5px; }
+  .log .t { font-family: var(--font-mono); font-size: 9.5px; color: var(--color-text-faint); padding-top: 2px; }
+  .log .x { color: var(--color-text-muted); }
+  .log .x b { color: var(--color-text); font-weight: 500; }
+
+  .switch-theme {
+    position: fixed; right: 10px; bottom: 10px;
+    z-index: 50;
+    width: 26px; height: 26px; padding: 0;
+    border-radius: 50%;
+    opacity: .45;
+    font-size: 10px;
+  }
+  .switch-theme:hover { opacity: 1; }
+
+  /* ---------- адаптив ---------- */
+  @media (max-width: 1280px) {
+    .shell { grid-template-columns: var(--layout-rail) 240px minmax(0,1fr); }
+    .panel { display: none; }
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .rail, .sidebar { display: none; }
+    .hud-scene { height: 220px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- статус-строка -->
+  <div class="statusbar">
+    <span class="dot"></span><strong>Ядро в сети</strong>
+    <span class="sep">/</span><span>защищённый локальный канал</span>
+    <span class="sep">/</span><span>русский</span>
+    <span class="grow"></span>
+    <span>цп <strong>34%</strong></span><span class="sep">·</span>
+    <span>озу <strong>61%</strong></span><span class="sep">·</span>
+    <span class="amber">темп. <strong>68 °C</strong></span><span class="sep">·</span>
+    <span>17:42:08</span>
+  </div>
+
+  <div class="shell">
+
+    <!-- рельс -->
+    <nav class="rail" aria-label="Основное">
+      <button aria-current="page" title="Амадеус">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z"/><path d="M12 8v8M8.5 10l7 4M15.5 10l-7 4"/></svg>
+      </button>
+      <button title="История">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="8"/></svg>
+      </button>
+      <button title="Проект">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h6l2 2h10v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z"/></svg>
+      </button>
+      <button title="Терминал">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>
+      </button>
+      <button title="Плагины">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><path d="M16.5 14v6M13.5 17h6"/></svg>
+      </button>
+      <span class="spacer"></span>
+      <button title="Настройки">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9.1a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9.1a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      </button>
+    </nav>
+
+    <!-- история -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <h2>История</h2>
+        <span class="count">128</span>
+        <span style="flex:1"></span>
+        <button class="icon-btn" title="Новый диалог" style="border:0;background:transparent;color:var(--color-text-faint);cursor:pointer">＋</button>
+      </div>
+      <div class="search">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        Поиск по диалогам
+        <kbd>⌘K</kbd>
+      </div>
+      <div class="threads">
+        <div class="group-label">Сегодня</div>
+        <div class="thread" data-active="true">
+          <span class="title">Кофе — и за работу?</span><span class="time">17:41</span>
+          <span class="snippet">Собрал утренний бриф: 3 задачи, погода, пробки…</span>
+        </div>
+        <div class="thread">
+          <span class="title">Собери отчёт по проекту</span><span class="time">16:12</span>
+          <span class="snippet">Прочитал 14 файлов в ~/projects/core, сделал сводку…</span>
+        </div>
+        <div class="thread">
+          <span class="title">Что на экране?</span><span class="time">15:03</span>
+          <span class="snippet">Вижу терминал и ошибку сборки на строке 42…</span>
+        </div>
+        <div class="group-label">Вчера</div>
+        <div class="thread">
+          <span class="title">Напомни про созвон</span><span class="time">19:20</span>
+          <span class="snippet">Напоминание на 10:00, повтор по будням.</span>
+        </div>
+        <div class="thread">
+          <span class="title">Голос Piper: подбор тембра</span><span class="time">18:44</span>
+          <span class="snippet">Сравнил irina-medium и dmitri-medium…</span>
+        </div>
+        <div class="thread">
+          <span class="title">Плагин погоды</span><span class="time">12:31</span>
+          <span class="snippet">Подключил, проверил ключ, включил уведомления.</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- сцена -->
+    <main class="stage">
+      <div class="stage-head">
+        <span class="name">Амадеус</span>
+        <span class="model">qwen2.5:7b · локально</span>
+        <span class="grow"></span>
+        <span class="hud-label">сеанс 00:42:16</span>
+      </div>
+
+      <div class="hud-scene">
+        <div class="scan"></div>
+        <div class="hud-meta left">
+          <div><span class="tick"></span>темп. ядра <b class="v">36,4°</b></div>
+          <div><span class="tick"></span>задержка <b class="v">0,8 с</b></div>
+          <div><span class="tick"></span>распознавание <b>whisper · рус</b></div>
+        </div>
+        <div class="hud-meta right">
+          <div>синхр. <b class="v">99,2%</b><span class="tick" style="margin-left:6px;margin-right:0"></span></div>
+          <div>детектор речи <b>silero</b><span class="tick" style="margin-left:6px;margin-right:0"></span></div>
+          <div>синтез <b>piper · ирина</b><span class="tick" style="margin-left:6px;margin-right:0"></span></div>
+        </div>
+        <div class="hud-meta bottom">
+          <div>инструментов <b>12</b> активно</div>
+        </div>
+        <div class="hud-meta bottom-r">
+          <div><b>5 248</b> токенов</div>
+        </div>
+
+        <svg class="reactor" viewBox="0 0 240 240" role="img" aria-label="Ядро ассистента: слушает">
+          <defs>
+            <radialGradient id="core" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="var(--reactor-core)" stop-opacity=".95"/>
+              <stop offset="38%" stop-color="var(--reactor-mid)" stop-opacity=".55"/>
+              <stop offset="72%" stop-color="var(--reactor-rim)" stop-opacity=".18"/>
+              <stop offset="100%" stop-color="var(--reactor-rim)" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+              <stop offset="60%" stop-color="var(--reactor-mid)" stop-opacity="0"/>
+              <stop offset="88%" stop-color="var(--reactor-mid)" stop-opacity=".18"/>
+              <stop offset="100%" stop-color="var(--reactor-mid)" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <circle cx="120" cy="120" r="112" fill="none" stroke="var(--color-hud-ring)" stroke-opacity=".22" stroke-width="1"/>
+          <circle class="halo" cx="120" cy="120" r="96" fill="url(#halo)"/>
+
+          <!-- тики по кругу -->
+          <g stroke="var(--color-hud-ring)" stroke-width="1" opacity=".55">
+            <g class="spin-slow">
+              <circle cx="120" cy="120" r="108" fill="none" stroke="none"/>
+              <g stroke-dasharray="1 6.6" stroke-linecap="round"><circle cx="120" cy="120" r="108" fill="none"/></g>
+            </g>
+            <g class="spin-rev">
+              <g stroke-dasharray="10 8" stroke-opacity=".8"><circle cx="120" cy="120" r="100" fill="none"/></g>
+            </g>
+          </g>
+
+          <!-- дуги -->
+          <g fill="none" stroke-linecap="round">
+            <g class="spin-fast" opacity=".9">
+              <path d="M120 28a92 92 0 0 1 65 27" stroke="var(--reactor-line)" stroke-width="2" opacity=".85"/>
+            </g>
+            <g class="spin-rev" opacity=".7">
+              <path d="M120 44a76 76 0 0 0-54 22" stroke="var(--color-accent-strong)" stroke-width="1.5"/>
+            </g>
+            <g class="spin-slow" opacity=".55">
+              <path d="M120 60a60 60 0 0 1 42 18" stroke="var(--color-hud-amber)" stroke-width="1.5"/>
+            </g>
+          </g>
+
+          <!-- wireframe-сфера -->
+          <g class="spin-slow" opacity=".8">
+            <ellipse cx="120" cy="120" rx="58" ry="58" fill="none" stroke="var(--reactor-line)" stroke-opacity=".5" stroke-width="1"/>
+            <ellipse cx="120" cy="120" rx="58" ry="34" fill="none" stroke="var(--reactor-line)" stroke-opacity=".28" stroke-width="1"/>
+            <ellipse cx="120" cy="120" rx="58" ry="16" fill="none" stroke="var(--reactor-line)" stroke-opacity=".2" stroke-width="1"/>
+            <ellipse cx="120" cy="120" rx="34" ry="58" fill="none" stroke="var(--reactor-line)" stroke-opacity=".3" stroke-width="1"/>
+            <ellipse cx="120" cy="120" rx="16" ry="58" fill="none" stroke="var(--reactor-line)" stroke-opacity=".2" stroke-width="1"/>
+            <ellipse cx="120" cy="120" rx="58" ry="58" fill="none" stroke="var(--reactor-line)" stroke-opacity=".16" stroke-width="1" transform="rotate(30 120 120)"/>
+            <ellipse cx="120" cy="120" rx="58" ry="58" fill="none" stroke="var(--reactor-line)" stroke-opacity=".16" stroke-width="1" transform="rotate(-30 120 120)"/>
+          </g>
+
+          <!-- ядро -->
+          <circle class="glow-core" cx="120" cy="120" r="58" fill="url(#core)" opacity=".55" class="breathe"/>
+          <circle class="pulse" cx="120" cy="120" r="62" fill="none" stroke="var(--color-accent-strong)" stroke-opacity=".35" stroke-width="1"/>
+          <circle cx="120" cy="120" r="6" fill="var(--reactor-core)"/>
+        </svg>
+
+        <div class="hud-caption">
+          <span class="live">● слушаю</span>
+          <span>—</span>
+          <span>скажите команду или нажмите пробел</span>
+        </div>
+      </div>
+
+      <!-- волна -->
+      <div class="voice">
+        <button class="btn primary">Микрофон</button>
+        <div class="wave" aria-hidden="true"></div>
+        <button class="btn ghost">Esc</button>
+      </div>
+
+      <!-- чат -->
+      <div class="chat">
+        <div class="msg user">
+          <div class="who"><span class="mark">◆</span>вы · 17:41</div>
+          <div class="body">Кофе — и за работу? Собери, что у меня сегодня.</div>
+        </div>
+
+        <div class="msg assistant">
+          <div class="who"><span class="mark">▲</span>ядро · 17:41</div>
+          <div class="body">
+            Доброе утро. Сегодня три задачи с дедлайном: созвон в 10:00, ревью макетов до 14:00 и отчёт по проекту.
+            Начнём с отчёта — он самый долгий.
+            <div class="tool-line"><span class="ok">✓</span> calendar.read · 3 события · 42 мс</div>
+            <div class="tool-line"><span class="ok">✓</span> weather.get · Москва · +4°, облачно</div>
+          </div>
+        </div>
+
+        <div class="msg assistant">
+          <div class="who"><span class="mark">▲</span>ядро · 17:42</div>
+          <div class="body">
+            По папке проекта: 14 изменённых файлов, 3 новых модуля и один незакрытый TODO.
+            <div class="tool-line"><span class="ok">✓</span> project.scan · только чтение · 118 мс</div>
+            <div class="code"><span class="k">core/voice.py</span>:142
+<span class="s"># TODO:</span> вынести VAD в отдельный процесс
+<span class="k">tests/test_pipeline.py</span>: новый</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- композер -->
+      <div class="composer-wrap">
+        <div class="composer">
+          <div class="input">Спросите что-нибудь или удерживайте пробел для голоса</div>
+          <button class="icon-btn" title="Вложение">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.5l-8.5 8.5a5 5 0 01-7-7L14 5.5a3.5 3.5 0 015 5l-8.5 8.5a2 2 0 01-3-3L16 7.5"/></svg>
+          </button>
+          <button class="icon-btn" title="Снимок экрана">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M8 6l1.5-2h5L16 6"/></svg>
+          </button>
+          <button class="send" title="Отправить">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12l16-8-6 16-3-6-7-2z"/></svg>
+          </button>
+        </div>
+        <div class="hints">
+          <span>Enter — отправить</span><span>Ctrl+K — команды</span><span>F4 — микрофон</span>
+          <span style="margin-left:auto">локально · без облака</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- телеметрия -->
+    <aside class="panel">
+      <div class="panel-head">
+        <h2>Телеметрия</h2>
+        <span class="grow"></span>
+        <span class="hud-label">2 с</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="metric">
+          <div class="top"><span class="lbl">ПРОЦЕССОР</span><span class="val">34<span class="unit">%</span></span></div>
+          <svg viewBox="0 0 200 26" preserveAspectRatio="none"><polyline fill="none" stroke="var(--color-accent)" stroke-width="1.5" points="0,20 12,18 24,19 36,14 48,16 60,10 72,12 84,9 96,13 108,7 120,11 132,8 144,12 156,6 168,9 180,5 200,8"/></svg>
+          <div class="bar"><i style="width:34%"></i></div>
+        </div>
+
+        <div class="metric">
+          <div class="top"><span class="lbl">ПАМЯТЬ</span><span class="val">9.8<span class="unit">ГБ</span></span></div>
+          <svg viewBox="0 0 200 26" preserveAspectRatio="none"><polyline fill="none" stroke="var(--color-accent)" stroke-width="1.5" points="0,16 12,15 24,17 36,16 48,14 60,15 72,13 84,14 96,12 108,13 120,11 132,12 144,10 156,11 168,9 180,10 200,9"/></svg>
+          <div class="bar"><i style="width:61%"></i></div>
+        </div>
+
+        <div class="metric">
+          <div class="top"><span class="lbl">ГРАФИКА</span><span class="val">12<span class="unit">%</span></span></div>
+          <svg viewBox="0 0 200 26" preserveAspectRatio="none"><polyline fill="none" stroke="var(--color-accent)" stroke-width="1.5" points="0,22 12,21 24,22 36,20 48,21 60,19 72,21 84,18 96,19 108,17 120,18 132,16 144,18 156,15 168,17 180,14 200,16"/></svg>
+          <div class="bar"><i style="width:12%"></i></div>
+        </div>
+
+        <div class="metric warn">
+          <div class="top"><span class="lbl">Температура</span><span class="val">68<span class="unit">°C</span></span></div>
+          <svg viewBox="0 0 200 26" preserveAspectRatio="none"><polyline fill="none" stroke="var(--color-hud-amber)" stroke-width="1.5" points="0,14 12,13 24,12 36,11 48,12 60,10 72,9 84,8 96,9 108,7 120,6 132,7 144,5 156,6 168,4 180,5 200,4"/></svg>
+          <div class="bar"><i style="width:68%"></i></div>
+        </div>
+
+        <hr class="hud-rule" style="margin:4px 0">
+
+        <div class="hud-label" style="padding:2px 6px">Инструменты</div>
+        <div class="tools">
+          <div class="tool"><span class="led"></span>Календарь<span class="tag">чтение</span></div>
+          <div class="tool"><span class="led"></span>Файлы проекта<span class="tag">чтение</span></div>
+          <div class="tool"><span class="led"></span>Погода<span class="tag">сеть</span></div>
+          <div class="tool"><span class="led off"></span>Терминал<span class="tag">выкл</span></div>
+          <div class="tool"><span class="led warn"></span>Управление ПК<span class="tag">запрос</span></div>
+        </div>
+
+        <hr class="hud-rule" style="margin:4px 0">
+
+        <div class="hud-label" style="padding:2px 6px">Активность</div>
+        <div class="log">
+          <div class="row"><span class="t">17:42</span><span class="x"><b>project.scan</b> · 14 файлов</span></div>
+          <div class="row"><span class="t">17:41</span><span class="x"><b>weather.get</b> · Москва</span></div>
+          <div class="row"><span class="t">17:41</span><span class="x"><b>calendar.read</b> · 3 события</span></div>
+          <div class="row"><span class="t">17:38</span><span class="x"><b>voice.stt</b> · 2,4 с</span></div>
+          <div class="row"><span class="t">17:37</span><span class="x"><b>model.load</b> · qwen2.5:7b</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  // волна: высоты детерминированные, чтобы скриншот был стабильным
+  (function () {
+    const themeParam = new URLSearchParams(location.search).get('theme');
+    if (themeParam === 'light' || themeParam === 'dark') {
+      document.documentElement.dataset.theme = themeParam;
+    }
+    const wave = document.querySelector('.wave');
+    const n = 56;
+    for (let i = 0; i < n; i++) {
+      const bar = document.createElement('i');
+      const center = Math.abs(i - n / 2) / (n / 2);
+      const base = 8 + (1 - center) * 22;
+      const jitter = ((i * 37) % 11) / 11;
+      bar.style.setProperty('--h', Math.round(base * (0.55 + jitter * 0.75)) + 'px');
+      bar.style.animationDelay = (i * 0.035).toFixed(2) + 's';
+      bar.style.animationDuration = (1.2 + (i % 5) * 0.12).toFixed(2) + 's';
+      bar.style.height = Math.round(6 + jitter * 6) + 'px';
+      wave.appendChild(bar);
+    }
+    // переключение темы для проверки светлой версии
+    const btn = document.createElement('button');
+    btn.className = 'btn switch-theme';
+    btn.textContent = 'Тема';
+    btn.onclick = () => {
+      const root = document.documentElement;
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    };
+    document.body.appendChild(btn);
+  })();
+</script>
+</body>
+</html>

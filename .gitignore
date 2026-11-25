@@ -1,0 +1,38 @@
+# Зависимости и сборки
+node_modules/
+dist/
+target/
+*.tsbuildinfo
+
+# Локальные данные и секреты
+backend/data/
+backend/.env
+.env
+*.db
+*.db-*
+*.sqlite
+*.pem
+*.pfx
+*.key
+
+# Модели и тяжёлые ассеты
+backend/data/models/
+*.onnx
+*.bin
+*.gguf
+
+# Артефакты тестов и отладки
+test-results/
+playwright-report/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+
+# Временные файлы
+_*.py
+_*.mjs
+tmp/
+_missing.txt
+design/ref/
+screens/store/

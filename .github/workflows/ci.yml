@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Python ${{ matrix.python-version }} на ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python-version: ["3.12"]
+    defaults:
+      run:
+        working-directory: replica/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Зависимости
+        run: python -m pip install -r requirements.txt
+      - name: Тесты
+        env:
+          AMADEUS_ALLOW_PLAINTEXT_DB: "1"
+          AMADEUS_SECRET_STORE: memory
+          AMADEUS_ALLOW_USER_OVERRIDE: "1"
+        run: python -m pytest -q
+
+  frontend:
+    name: Сборка UI на ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    defaults:
+      run:
+        working-directory: replica/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: replica/app/package-lock.json
+      - name: Зависимости
+        run: npm ci
+      - name: Типы и сборка
+        run: npm run build
+
+  signing:
+    name: Подпись через SignPath (open source)
+    if: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+    runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Сборка Tauri
+        working-directory: replica/app/src-tauri
+        run: cargo build --release
+      - name: Загрузка неподписанного артефакта
+        id: upload-unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: amadeus-unsigned
+          path: replica/app/src-tauri/target/release/Amadeus.exe
+          if-no-files-found: error
+      - name: Запрос подписи SignPath
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+      - name: Проверка подписи
+        run: |
+          $exe = Get-ChildItem signed -Filter *.exe -Recurse | Select-Object -First 1
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" verify /pa /v $exe.FullName
+      - name: Загрузка подписанного артефакта
+        uses: actions/upload-artifact@v7
+        with:
+          name: amadeus-signed
+          path: signed
