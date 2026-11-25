@@ -23,8 +23,8 @@ test.describe("F01 первый запуск", () => {
     const setup = page.getByRole("dialog", { name: "Первый запуск" });
     await expect(setup).toBeVisible();
 
-    await setup.getByRole("radio", { name: "English" }).click();
     await setup.getByRole("radio", { name: /Облачный адаптер/ }).click();
+    await setup.getByRole("radio", { name: "English" }).click();
     await setup.getByLabel("Ключ провайдера").fill("e2e-only-key");
     await setup.getByRole("button", { name: "Начать работу" }).click();
 

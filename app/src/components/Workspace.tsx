@@ -588,24 +588,25 @@ export function Workspace({
           </button>
           <button
             className="head-more"
-            aria-label="Другие действия"
+            aria-label="Меню: другие действия"
             aria-expanded={headMenuOpen}
             onClick={() => setHeadMenuOpen((value) => !value)}
           >
-            ⋯
+            <span aria-hidden="true">⋯</span>
+            <span className="head-more__text">Меню</span>
           </button>
           {headMenuOpen && (
             <div className="head-menu" role="menu">
-              <button role="menuitem" onClick={() => { toggleSphere(); setHeadMenuOpen(false); }}>
+              <button role="menuitem" title="Оставить только сферу и ввод" onClick={() => { toggleSphere(); setHeadMenuOpen(false); }}>
                 {sphereMode ? "Чат" : "Сфера"}
               </button>
-              <button role="menuitem" onClick={() => { setFocusMode((value) => !value); setHeadMenuOpen(false); }}>
+              <button role="menuitem" title="Скрыть боковые панели" onClick={() => { setFocusMode((value) => !value); setHeadMenuOpen(false); }}>
                 {focusMode ? "Выйти из фокуса" : "Фокус"}
               </button>
               <button role="menuitem" onClick={() => { onOpenWorkshop(); setHeadMenuOpen(false); }}>
                 Мастерская
               </button>
-              <button role="menuitem" onClick={() => { onCollapse(); setHeadMenuOpen(false); }}>
+              <button role="menuitem" title="Свернуть в маленькую сферу поверх окон" onClick={() => { onCollapse(); setHeadMenuOpen(false); }}>
                 Свернуть
               </button>
               <button role="menuitem" onClick={() => { onToggleTheme(); setHeadMenuOpen(false); }}>
@@ -620,22 +621,28 @@ export function Workspace({
         <nav className="rail" aria-label="Основное">
           <button aria-current="page" title="Amadeus" onClick={() => setPanel("none")}>
             <Icon name="core" />
+            <span className="rail-label" aria-hidden="true">Главная</span>
           </button>
           <button title={tr("nav.history")} aria-expanded={historyOpen} onClick={() => setHistoryOpen((value) => !value)}>
             <Icon name="history" />
+            <span className="rail-label" aria-hidden="true">История</span>
           </button>
           <button title={tr("nav.project")} onClick={() => setPanel((current) => (current === "project" ? "none" : "project"))}>
             <Icon name="folder" />
+            <span className="rail-label" aria-hidden="true">Проект</span>
           </button>
           <button title={tr("nav.terminal")} onClick={() => setPanel((current) => (current === "terminal" ? "none" : "terminal"))}>
             <Icon name="terminal" />
+            <span className="rail-label" aria-hidden="true">Терминал</span>
           </button>
           <span className="spacer" />
           <button title={tr("nav.center")} onClick={onOpenCenter}>
             <Icon name="center" />
+            <span className="rail-label" aria-hidden="true">Центр</span>
           </button>
           <button title={tr("nav.settings")} onClick={onOpenSettings}>
             <Icon name="gear" />
+            <span className="rail-label" aria-hidden="true">Настройки</span>
           </button>
         </nav>
 
@@ -950,13 +957,14 @@ export function Workspace({
               <div className="attach-menu">
                 <button
                   className="icon-btn"
-                  title="Добавить"
-                  aria-label="Добавить"
+                  title="Прикрепить файл, снимок или область экрана"
+                  aria-label="Добавить файл"
                   aria-expanded={attachMenuOpen}
                   type="button"
                   onClick={() => setAttachMenuOpen((value) => !value)}
                 >
-                  +
+                  <span aria-hidden="true">＋</span>
+                  <span className="composer__attach-text">Файл</span>
                 </button>
                 {attachMenuOpen && (
                   <div className="attach-popover" role="menu">

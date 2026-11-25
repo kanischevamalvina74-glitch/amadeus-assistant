@@ -2,6 +2,10 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 test.describe("S08/S15 настройки и F05 вложения", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.request.post("/api/settings.locale", { data: { locale: "ru" } });
+  });
+
   test("S08-H1 открыть настройки, сменить тему и язык", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
@@ -13,7 +17,7 @@ test.describe("S08/S15 настройки и F05 вложения", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await dialog.getByLabel("Язык интерфейса").selectOption("en");
     await expect(dialog.getByRole("status")).toContainText("Язык сохранён");
-    await expect(dialog.getByText("ollama")).toBeVisible();
+    await expect(dialog.getByText("ollama", { exact: true })).toBeVisible();
 
     const a11y = await new AxeBuilder({ page }).analyze();
     expect(a11y.violations).toEqual([]);

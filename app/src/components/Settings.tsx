@@ -78,6 +78,9 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
   const [importData, setImportData] = useState<{ format?: string; version?: number; exported_at?: string; profile?: Record<string, unknown>; settings: Record<string, unknown> } | null>(null);
   const [voiceId, setVoiceId] = useState("");
   const [voices, setVoices] = useState<VoiceInfo["voices"]>([]);
+  const [ollamaUrl, setOllamaUrl] = useState("http://127.0.0.1:11434");
+  const [ollamaError, setOllamaError] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState("");
   const [lockPin, setLockPin] = useState("");
   const [lockVerify, setLockVerify] = useState("");
   const notify = useCallback((message: string) => {
@@ -137,6 +140,8 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
       setProviders(await prefs.providers());
       const info = await modelsApi.list();
       setModels(info.ollama);
+      setOllamaError(info.error);
+      setSelectedModel(String(info.active?.model_id ?? info.ollama[0] ?? ""));
       if (!values["ai.mode"] && info.active?.provider_id) {
         setMode(String(info.active.provider_id));
       }
@@ -239,6 +244,39 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
     });
   };
 
+  const checkOllama = () => {
+    void run(async () => {
+      const info = await modelsApi.list();
+      setModels(info.ollama);
+      setOllamaError(info.error);
+      setSelectedModel(String(info.active?.model_id ?? info.ollama[0] ?? ""));
+      notify(info.error ? `Ollama не отвечает: ${info.error}` : `Ollama подключена. Моделей: ${info.ollama.length}`);
+    });
+  };
+
+  const connectOllama = () => {
+    if (!selectedModel) {
+      notify("Сначала выберите модель из списка");
+      return;
+    }
+    void run(async () => {
+      await modelsApi.activate("ollama", selectedModel, ollamaUrl.trim() || undefined);
+      await prefs.applyProvider("local");
+      notify(`Подключена модель: ${selectedModel}`);
+      checkOllama();
+    });
+  };
+
+  const checkMicrophone = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop());
+      notify("Микрофон работает");
+    } catch {
+      notify("Микрофон недоступен. Разрешите доступ в системе");
+    }
+  };
+
   const saveLockPin = () => {
     void run(async () => {
       const result = await lockApi.set(lockPin);
@@ -279,6 +317,60 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
 
         <div className="center-body" role="tabpanel" tabIndex={0}>
           {error && <p className="center-error" role="alert">{error}</p>}
+
+          <section className="setup-guide" aria-labelledby="quick-setup">
+            <h2 id="quick-setup">Как запустить голос</h2>
+            <ol className="setup-steps">
+              <li>
+                <b>1. Подключите Ollama</b>
+                <p>Это локальная программа с моделями. Она должна быть запущена на этом компьютере.</p>
+                <div className="center-form">
+                  <label>
+                    Адрес Ollama
+                    <input
+                      value={ollamaUrl}
+                      onChange={(event) => setOllamaUrl(event.target.value)}
+                      placeholder="http://127.0.0.1:11434"
+                    />
+                  </label>
+                  <div className="center-actions">
+                    <button type="button" className="center-primary" onClick={checkOllama}>
+                      Проверить подключение
+                    </button>
+                  </div>
+                  <p className={`center-hint ${ollamaError ? "center-error" : ""}`}>
+                    {ollamaError
+                      ? `Не подключено: ${ollamaError}. Запустите Ollama и нажмите «Проверить подключение».`
+                      : `Подключено. Доступно моделей: ${models.length}.`}
+                  </p>
+                </div>
+              </li>
+              <li>
+                <b>2. Выберите модель и подключите её</b>
+                <p>Без выбранной модели ассистент не сможет отвечать.</p>
+                <div className="center-form">
+                  <label>
+                    Модель
+                    <select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)}>
+                      {models.length === 0 && <option value="">Нет доступных моделей</option>}
+                      {models.map((model) => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="center-actions">
+                    <button type="button" className="center-primary" onClick={connectOllama}>
+                      Подключить модель
+                    </button>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <b>3. Выберите голос и проверьте микрофон</b>
+                <p>Раздел «Голос» ниже. Нажмите «Проверить микрофон», чтобы убедиться, что ассистент вас слышит.</p>
+              </li>
+            </ol>
+          </section>
 
           <section aria-labelledby="general-settings">
             <h2 id="general-settings">{translate(locale, "settings.general")}</h2>
@@ -466,6 +558,12 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
                   ))}
                 </select>
               </label>
+              <p className="center-hint">Это голос, которым Амадеус отвечает. Микрофон нужен, чтобы он вас слышал.</p>
+              <div className="center-actions">
+                <button type="button" className="center-primary" onClick={() => void checkMicrophone()}>
+                  Проверить микрофон
+                </button>
+              </div>
               <p className="center-hint">Проверенный путь: микрофон → Whisper → локальная модель → TTS.</p>
             </div>
           </section>

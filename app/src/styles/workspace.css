@@ -1157,3 +1157,21 @@ button.hud-compact__status:hover { text-decoration: underline; }
   .app-header { gap: 8px; padding: 0 8px; }
   .model--chip { display: none; }
 }
+
+
+/* Понятность: подписи вместо загадочных иконок. */
+.shell { grid-template-columns: 56px 220px minmax(0, 1fr) var(--layout-panel); }
+.shell[data-panel="closed"] { grid-template-columns: 56px 220px 1fr; }
+.rail { width: 56px; }
+.rail button { width: 48px; height: 42px; flex-direction: column; gap: 2px; }
+.rail-label { font-family: var(--font-sans); font-size: 9px; line-height: 1; color: var(--color-text-faint); }
+.rail button[aria-current="page"] .rail-label { color: var(--color-accent); }
+.app-header .head-more { display: flex; align-items: center; gap: 6px; padding: 0 10px; width: auto; }
+.head-more__text { font-family: var(--font-sans); font-size: 12px; }
+.composer .icon-btn:has(.composer__attach-text) { width: auto; padding: 0 10px; gap: 6px; display: flex; align-items: center; }
+.composer__attach-text { font-family: var(--font-sans); font-size: 12px; }
+@media (max-width: 960px) {
+  .shell, .shell[data-panel="closed"] { grid-template-columns: 56px minmax(0, 1fr) !important; }
+  .head-more__text { display: none; }
+  .composer__attach-text { display: none; }
+}
