@@ -491,41 +491,57 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
           </section>
 
           <section aria-labelledby="web-settings">
-            <h2 id="web-settings">Веб-поиск</h2>
+            <h2 id="web-settings">Поиск в интернете</h2>
+            <p className="center-hint">
+              Нужно только для свежих событий. Для чата и голоса можно оставить выключенным.
+            </p>
             <div className="center-form">
               <label>
-                Провайдер
+                Поиск в интернете
                 <select value={webProvider} onChange={(event) => changeWebProvider(event.target.value)}>
-                  <option value="off">Не настроен</option>
-                  <option value="brave">Brave Search</option>
-                  <option value="searxng">SearXNG</option>
+                  <option value="off">Выключен</option>
+                  <option value="brave">Включить через Brave (нужен ключ)</option>
+                  <option value="searxng">Включить через другой сервер поиска</option>
                 </select>
               </label>
               {webProvider === "searxng" && (
-                <label>
-                  Адрес SearXNG
-                  <input value={webSearxUrl} onChange={(event) => setWebSearxUrl(event.target.value)} placeholder="https://searx.example" />
-                </label>
+                <>
+                  <label>
+                    Адрес сервера поиска
+                    <input value={webSearxUrl} onChange={(event) => setWebSearxUrl(event.target.value)} placeholder="https://поиск.пример.рф" />
+                  </label>
+                  <p className="center-hint">Это для тех, кто запускает поиск у себя. Обычно не нужно.</p>
+                </>
               )}
-              <label>
-                Ключ Brave Search
-                <input
-                  type="password"
-                  value={braveKey}
-                  onChange={(event) => setBraveKey(event.target.value)}
-                  placeholder="Не сохраняется в базе"
-                  autoComplete="off"
-                />
-              </label>
-              <button type="button" className="center-primary" onClick={() => void run(async () => {
-                await saveBraveKey();
-              })}>
-                Сохранить ключ
-              </button>
+              {webProvider === "brave" && (
+                <>
+                  <label>
+                    Ключ поиска Brave
+                    <input
+                      type="password"
+                      value={braveKey}
+                      onChange={(event) => setBraveKey(event.target.value)}
+                      placeholder="Вставьте ключ с сайта Brave"
+                      autoComplete="off"
+                    />
+                  </label>
+                  <button type="button" className="center-primary" onClick={() => void run(async () => {
+                    await saveBraveKey();
+                  })}>
+                    Сохранить ключ
+                  </button>
+                </>
+              )}
               {webStatus && (
                 <p className="center-hint">
-                  Поиск: {webStatus.provider === "off" ? "не настроен" : webStatus.provider}
-                  {" · "}ключ Brave: {webStatus.has_brave_key ? "сохранён" : "не задан"}
+                  Поиск в интернете: {
+                    webStatus.provider === "off"
+                      ? "выключен"
+                      : webStatus.provider === "brave"
+                        ? "включён через Brave"
+                        : "включён через другой сервер"
+                  }
+                  {" · "}ключ Brave: {webStatus.has_brave_key ? "добавлен" : "не добавлен"}
                 </p>
               )}
               <button
@@ -535,11 +551,11 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
                   setWebStatus(await webApi.status());
                 })}
               >
-                Обновить статус
+                Проверить поиск
               </button>
               <label>
-                Запрос поиска
-                <input value={settingsQuery} onChange={(event) => setSettingsQuery(event.target.value)} placeholder="Например, модель или голос" />
+                Найти настройку
+                <input value={settingsQuery} onChange={(event) => setSettingsQuery(event.target.value)} placeholder="Например, голос или модель" />
               </label>
             </div>
           </section>

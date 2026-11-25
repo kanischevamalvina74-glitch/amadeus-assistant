@@ -135,7 +135,7 @@ async def search(
         results = await searx_search(query, base_url, count, client)
     else:
         raise SearchError(
-            "Веб-поиск не настроен. Выберите провайдера (Brave Search или SearXNG) в настройках."
+            "Поиск в интернете выключен. Включите его в настройках, если хотите узнавать свежие события."
         )
     return {"query": query, "provider": provider, "results": results}
 
