@@ -10,6 +10,7 @@ import { initialMessages, nowTime, type ChatMessage, type Conversation } from ".
 import {
   api,
   control,
+  prefs,
   shell,
   streamAnswer,
   toTime,
@@ -77,6 +78,22 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const apply = (value: string) => {
+      document.documentElement.dataset.accent = value === "amber" || value === "violet" || value === "green" ? value : "cyan";
+    };
+    void prefs.get(["ui.accent"]).then((values) => {
+      if (!cancelled) apply(String(values["ui.accent"] ?? "cyan"));
+    }).catch(() => undefined);
+    const onAccent = (event: Event) => apply((event as CustomEvent<string>).detail);
+    window.addEventListener("amadeus.accent", onAccent);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("amadeus.accent", onAccent);
+    };
+  }, []);
 
   useEffect(() => {
     saveCommands(commands);

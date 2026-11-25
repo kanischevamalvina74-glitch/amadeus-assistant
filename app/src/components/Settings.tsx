@@ -45,6 +45,7 @@ type VoiceInfo = { voices: Array<{ id: string; name: string; locale: string }>; 
 
 export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
   const [locale, setLocale] = useState<Locale>("ru");
+  const [accent, setAccent] = useState("cyan");
   const [mode, setMode] = useState("local");
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [models, setModels] = useState<string[]>([]);
@@ -97,6 +98,7 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
       const values = await prefs.get([
         "app.locale",
         "ai.mode",
+        "ui.accent",
         "web.provider",
         "web.searx_url",
         "workspace.root",
@@ -108,6 +110,7 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
         "privacy.telemetry",
       ]);
       setLocale(values["app.locale"] === "en" ? "en" : "ru");
+      setAccent(typeof values["ui.accent"] === "string" ? String(values["ui.accent"]) : "cyan");
       setMode(typeof values["ai.mode"] === "string" ? values["ai.mode"] : "local");
       setWebProvider(typeof values["web.provider"] === "string" ? values["web.provider"] : "off");
       setWebSearxUrl(typeof values["web.searx_url"] === "string" ? String(values["web.searx_url"]) : "");
@@ -145,6 +148,15 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
       await prefs.patch({ "app.locale": next });
       window.dispatchEvent(new CustomEvent("amadeus.locale", { detail: next }));
       notify("Язык сохранён");
+    });
+  };
+
+  const changeAccent = (value: string) => {
+    setAccent(value);
+    void run(async () => {
+      await prefs.patch({ "ui.accent": value });
+      window.dispatchEvent(new CustomEvent("amadeus.accent", { detail: value }));
+      notify("Акцент сохранён");
     });
   };
 
@@ -278,6 +290,16 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
                 <select value={theme} onChange={(event) => onTheme(event.target.value as "dark" | "light")}>
                   <option value="dark">Тёмная</option>
                   <option value="light">Светлая</option>
+                </select>
+              </label>
+              <label>
+                {translate(locale, "settings.accent")}
+                <select value={accent} onChange={(event) => changeAccent(event.target.value)}>
+                  {(["cyan", "amber", "violet", "green"] as const).map((value) => (
+                    <option key={value} value={value}>
+                      {translate(locale, `accent.${value}`)}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="center-inline">

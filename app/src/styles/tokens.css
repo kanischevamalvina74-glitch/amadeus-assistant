@@ -25,7 +25,6 @@
   --color-hud-ring: #2C6E85;
   --color-hud-amber: #FFB020;
   --color-focus: #54E0FF;
-
   --font-display: "Exo 2", Manrope, system-ui, sans-serif;
   --font-sans: Inter, Manrope, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -95,6 +94,31 @@
   --reactor-rim: #1F7F96;
   --reactor-glow: rgba(84, 224, 255, .22);
   --reactor-line: #54E0FF;
+}
+
+/* Акцент оформления: пользователь выбирает его в настройках. */
+:root[data-accent="amber"] {
+  --color-accent: #FFB020;
+  --color-accent-strong: #FFD277;
+  --color-accent-dim: #8A5B12;
+  --color-focus: #FFB020;
+  --color-hud-ring: #8A5B12;
+}
+
+:root[data-accent="violet"] {
+  --color-accent: #B78BFF;
+  --color-accent-strong: #D8C1FF;
+  --color-accent-dim: #5F3E9E;
+  --color-focus: #B78BFF;
+  --color-hud-ring: #5F3E9E;
+}
+
+:root[data-accent="green"] {
+  --color-accent: #5AE6A0;
+  --color-accent-strong: #A6F5CD;
+  --color-accent-dim: #1F7A55;
+  --color-focus: #5AE6A0;
+  --color-hud-ring: #1F7A55;
 }
 
 [data-theme="light"] {
@@ -251,4 +275,26 @@ body {
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Акцент в светлой теме: те же варианты, но с контрастом на светлом фоне. */
+[data-theme="light"][data-accent="amber"] {
+  --color-accent: #8A5B12;
+  --color-accent-strong: #6B4408;
+  --color-accent-dim: #E8CFA3;
+  --color-focus: #8A5B12;
+}
+
+[data-theme="light"][data-accent="violet"] {
+  --color-accent: #5F3E9E;
+  --color-accent-strong: #472A7C;
+  --color-accent-dim: #D6C8F0;
+  --color-focus: #5F3E9E;
+}
+
+[data-theme="light"][data-accent="green"] {
+  --color-accent: #106B45;
+  --color-accent-strong: #0B5234;
+  --color-accent-dim: #B7E7D0;
+  --color-focus: #106B45;
 }

@@ -1950,6 +1950,7 @@ def updates_cleanup(user_id: str = Depends(current_user)) -> dict[str, Any]:
 SETTINGS_INDEX: list[dict[str, str]] = [
     {"key": "app.locale", "title": "Язык интерфейса", "category": "Общие"},
     {"key": "app.theme", "title": "Тема оформления", "category": "Общие"},
+    {"key": "ui.accent", "title": "Акцент оформления", "category": "Общие"},
     {"key": "app.autostart", "title": "Автозапуск с системой", "category": "Общие"},
     {"key": "ai.mode", "title": "Режим провайдера", "category": "Модели"},
     {"key": "ai.preset", "title": "Профиль ответов", "category": "Модели"},
