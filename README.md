@@ -1,0 +1,50 @@
+# Амадеус
+
+Локальный кроссплатформенный ИИ-ассистент: голос, чат, HUD, проект с редактором и терминалом, плагины и система разрешений. Исходный код открыт под лицензией MIT.
+
+## Возможности
+
+- Голосовой каскад: VAD (энергия или Silero), локальный Whisper, Ollama или OpenAI-совместимый провайдер, системный TTS или Piper; push-to-talk и локальное кодовое слово.
+- Чат со стримингом SSE, вложениями, историей в SQLite, саммари памяти и черновиком.
+- HUD с телеметрией CPU/RAM/диска/сети/температуры, RW/EN-интерфейс, тёмная и светлая темы.
+- Рабочее пространство: выбор папки, дерево файлов, редактор, терминал, поиск по файлам.
+- Центр управления: разрешения Ask/Approve/Full, журнал действий, напоминания, задачи, память, плагины.
+- Веб-поиск через Brave Search или SearXNG, автообновления с проверкой SHA-256, PIN-блокировка.
+
+## Стек
+
+Tauri 2 (Rust) + React 19 + TypeScript + Vite; Python 3.12+ FastAPI sidecar; SQLite с миграциями; секреты в OS keychain.
+
+## Запуск
+
+Бэкенд:
+
+```bash
+cd backend
+python -m pip install -r requirements.txt
+$env:AMADEUS_ALLOW_PLAINTEXT_DB='1'; $env:AMADEUS_SECRET_STORE='memory'; $env:AMADEUS_ALLOW_USER_OVERRIDE='1'
+python -m uvicorn core.app:app --host 127.0.0.1 --port 8787
+```
+
+Фронтенд:
+
+```bash
+cd app
+npm install
+npm run dev
+```
+
+Нативная оболочка: `cargo build` в `app/src-tauri` (нужен MSVC на Windows).
+
+## Тесты
+
+- `cd backend && python -m pytest -q`
+- `cd app && npm run build && npm run e2e`
+
+## Подпись сборки
+
+CI использует SignPath Foundation для бесплатной подписи открытых проектов. См. `signing.md`.
+
+## Лицензия
+
+MIT — см. `LICENSE`. Референсные проекты JARVIS использовались только как публичное описание функций; их код, ассеты и бренд не переносятся.
