@@ -734,7 +734,7 @@ export function Workspace({
 
             {!sphereMode && (
               <div className="hud-compact">
-                <ParticleSphere className="orb-sphere" state={state} size={32} points={130} />
+                <ParticleSphere className="orb-sphere" state={state} size={32} points={240} />
                 <div className="hud-compact__column">
                   <span className="sr-only" role="status" aria-label="Состояние ядра">
                     ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}

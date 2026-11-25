@@ -3,7 +3,7 @@ import type { HudState } from "./primitives";
 
 /**
  * Сфера из светящихся точек (сфера Фибоначчи), вращается и «дышит» по состоянию ядра.
- * Рисуется на canvas: ~720 точек на большом размере, ~110 — в шапке.
+ * Рисуется на canvas: ~1400 точек на большом размере, ~240 — в шапке.
  */
 
 type Props = {
@@ -51,7 +51,7 @@ export function ParticleSphere({ state = "idle", size = 248, points, className =
     canvas.height = Math.round(size * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const count = points ?? Math.round(Math.min(900, Math.max(90, size * 2.9)));
+    const count = points ?? Math.round(Math.min(2400, Math.max(160, size * 6)));
     const golden = Math.PI * (3 - Math.sqrt(5));
     const base: Array<[number, number, number]> = [];
     for (let i = 0; i < count; i += 1) {
@@ -99,7 +99,7 @@ export function ParticleSphere({ state = "idle", size = 248, points, className =
       const ca = Math.cos(angle), sa = Math.sin(angle);
       const ct = Math.cos(tilt), st = Math.sin(tilt);
       const breath = reduce ? 0 : Math.sin(t * (s === "listening" ? 3.2 : 1.4)) * 0.025 * (0.6 + energy);
-      const dot = small ? 0.9 : Math.max(0.9, size / 230);
+      const dot = small ? 0.7 : Math.max(0.75, size / 300);
 
       // мягкое свечение в центре
       if (!light) {
