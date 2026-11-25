@@ -32,6 +32,13 @@
     "publisher": "Amadeus",
     "copyright": "Copyright © 2026 Amadeus",
     "licenseFile": "../../LICENSE",
-    "externalBin": ["../../backend/dist/amadeus-core"]
+    "externalBin": ["../../backend/dist/amadeus-core"],
+    "windows": {
+      "nsis": {
+        "languages": ["Russian"],
+        "customLanguageFiles": { "Russian": "nsis/Russian.nsh" },
+        "installerHooks": "nsis/hooks.nsh"
+      }
+    }
   }
 }
