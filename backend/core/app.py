@@ -776,7 +776,11 @@ async def voice_session(websocket: WebSocket, user_id: str = Depends(current_use
         db.ensure_user(conn, user_id)
 
     async def emit(event: voice.VoiceEvent) -> None:
-        await websocket.send_text(event.as_json())
+        try:
+            await websocket.send_text(event.as_json())
+        except (WebSocketDisconnect, RuntimeError):
+            # Клиент ушёл во время TTS — не оставлять необработанное исключение в фоновой задаче.
+            pass
 
     conversation_id = websocket.query_params.get("conversation_id")
 
