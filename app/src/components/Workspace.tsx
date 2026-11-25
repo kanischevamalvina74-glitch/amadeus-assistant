@@ -36,6 +36,8 @@ type Props = {
   onCollapse: () => void;
   onTalk: () => void;
   onToggleTheme: () => void;
+  latencyMs?: number | null;
+  tokensPerSecond?: number | null;
 };
 
 
@@ -317,6 +319,8 @@ export function Workspace({
   onCollapse,
   onTalk,
   onToggleTheme,
+  latencyMs = null,
+  tokensPerSecond = null,
 }: Props) {
   const { t: tr } = useLocale();
   const [draft, setDraft] = useState(() => {
@@ -333,6 +337,9 @@ export function Workspace({
   const [pickingRegion, setPickingRegion] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragRect, setDragRect] = useState<number[] | null>(null);
+  const [telemetryOpen, setTelemetryOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
   const [panel, setPanel] = useState<Panel>("none");
   const chatRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -350,6 +357,18 @@ export function Workspace({
       }),
     [],
   );
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === ".") {
+        event.preventDefault();
+        setTelemetryOpen((value) => !value);
+      }
+      if (event.key === "Escape" && focusMode) setFocusMode(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusMode]);
 
   useEffect(() => {
     const el = chatRef.current;
@@ -457,7 +476,7 @@ export function Workspace({
   };
 
   return (
-    <div className="app">
+    <div className="app" data-focus={focusMode ? "true" : undefined}>
       <div className="statusbar" role="banner">
         <span className={`dot ${!model.online ? "dot--off" : model.hasModel ? "" : "dot--warn"}`} />
         <strong>{!model.online ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}</strong>
@@ -466,9 +485,15 @@ export function Workspace({
         <span className="sep">/</span>
         <span>{tr("status.russian")}</span>
         <span className="grow" />
-        <span>
-          {tr("status.cpu")} <strong>{metrics ? `${metrics.cpu}%` : "—"}</strong>
-        </span>
+        <button
+          type="button"
+          className="status-chip"
+          title="Телеметрия (Ctrl+.)"
+          aria-expanded={telemetryOpen}
+          onClick={() => setTelemetryOpen((value) => !value)}
+        >
+          {tr("status.cpu")} <strong>{metrics ? `${metrics.cpu}%` : "-"}</strong>
+        </button>
         <span className="sep">·</span>
         <span>
           {tr("status.memory")} <strong>{metrics ? `${metrics.memory.used_gb} ГБ` : "—"}</strong>
@@ -487,7 +512,7 @@ export function Workspace({
           <button aria-current="page" title="Амадеус">
             <Icon name="core" />
           </button>
-          <button title={tr("nav.history")}>
+          <button title={tr("nav.history")} aria-expanded={historyOpen} onClick={() => setHistoryOpen((value) => !value)}>
             <Icon name="history" />
           </button>
           <button title={tr("nav.project")} onClick={() => setPanel((current) => (current === "project" ? "none" : "project"))}>
@@ -508,6 +533,7 @@ export function Workspace({
           </button>
         </nav>
 
+        {historyOpen && !focusMode && (
         <aside className="sidebar" aria-label="История диалогов">
           <div className="sidebar-head">
             <h2>История</h2>
@@ -542,6 +568,7 @@ export function Workspace({
             ))}
           </div>
         </aside>
+        )}
 
         <main className="stage">
           <div className="stage-head">
@@ -551,6 +578,9 @@ export function Workspace({
             </span>
             <span className="grow" />
             <span className="hud-label">сеанс 00:42:16</span>
+            <button className="collapse-btn" onClick={() => setFocusMode((value) => !value)} title="Фокус: только сфера, чат и ввод">
+              {focusMode ? "Выйти" : "Фокус"}
+            </button>
             <button className="collapse-btn" onClick={onOpenWorkshop} title="Команды, Telegram, аватар">
               Мастерская
             </button>
@@ -564,11 +594,11 @@ export function Workspace({
             <div className="hud-meta left">
               <div>
                 <span className="tick" />
-                темп. ядра <b className="v">36,4°</b>
+                процессор <b className="v">{metrics ? `${metrics.cpu}%` : "—"}</b>
               </div>
               <div>
                 <span className="tick" />
-                задержка <b className="v">0,8 с</b>
+                задержка <b className="v">{latencyMs != null ? `${latencyMs} мс` : "—"}</b>
               </div>
               <div>
                 <span className="tick" />
@@ -577,7 +607,7 @@ export function Workspace({
             </div>
             <div className="hud-meta right">
               <div>
-                синхр. <b className="v">99,2%</b>
+                модель <b className="v">{OLLAMA_LABEL}</b>
                 <span className="tick tick--right" />
               </div>
               <div>
@@ -591,12 +621,12 @@ export function Workspace({
             </div>
             <div className="hud-meta bottom">
               <div>
-                инструментов <b>12</b> активно
+                токенов в секунду <b>{tokensPerSecond != null ? tokensPerSecond.toFixed(1) : "—"}</b>
               </div>
             </div>
             <div className="hud-meta bottom-r">
               <div>
-                <b>5 248</b> токенов
+                <b>{metrics?.memory.used_gb ?? "—"} ГБ</b> памяти
               </div>
             </div>
 
@@ -636,36 +666,50 @@ export function Workspace({
             aria-label="История сообщений"
             tabIndex={0}
           >
-            {messages.map((message) => (
-              <div
-                className={`msg ${message.role} ${message.error ? "msg--error" : ""}`}
-                key={message.id}
-                role="article"
-                aria-label={`Сообщение: ${message.role === "user" ? "вы" : "ядро"}`}
-              >
-                <div className="who">
-                  <span className="mark">{message.role === "user" ? "◆" : "▲"}</span>
-                  {message.role === "user" ? "вы" : "ядро"} · {message.time}
-                </div>
-                <div className="body">
-                  {message.text}
-                  {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
-                  {!message.streaming &&
-                    message.tools?.map((tool) => (
-                      <div className="tool-line" key={tool.name}>
-                        <span className="ok">✓</span> {tool.name} · {tool.detail}
+            {messages
+              .filter(
+                (message, index, all) =>
+                  all.findIndex((item) => item.id === message.id) === index &&
+                  (message.streaming || message.text.trim() !== "" || Boolean(message.tools?.length) || Boolean(message.code)),
+              )
+              .map((message) => (
+                <div
+                  className={`msg ${message.role} ${message.error ? "msg--error" : ""}`}
+                  key={message.id}
+                  role="article"
+                  aria-label={`Сообщение: ${message.role === "user" ? "вы" : "ядро"}`}
+                >
+                  <div className="who">
+                    <span className="mark">{message.role === "user" ? "◆" : "▲"}</span>
+                    {message.role === "user" ? "ВЫ" : "ЯДРО"} · {message.time}
+                  </div>
+                  <div className="body">
+                    {message.text}
+                    {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
+                    {!message.streaming &&
+                      message.tools?.map((tool) => (
+                        <details className="tool-chip" key={tool.name}>
+                          <summary>✓ {tool.name} · {tool.detail}</summary>
+                          <span>{tool.detail}</span>
+                        </details>
+                      ))}
+                    {!message.streaming && message.code && (
+                      <div className="code">
+                        <button
+                          type="button"
+                          className="code-copy"
+                          onClick={() => void navigator.clipboard.writeText(message.code?.lines.join("\n") ?? "")}
+                        >
+                          Скопировать
+                        </button>
+                        <span className="k">{message.code.file}</span>:142{"\n"}
+                        <span className="s"># ЗАДАЧА:</span> вынести детектор активности речи в отдельный процесс{"\n"}
+                        <span className="k">{message.code.lines[1].split(":")[0]}</span>: новый
                       </div>
-                    ))}
-                  {!message.streaming && message.code && (
-                    <div className="code">
-                      <span className="k">{message.code.file}</span>:142{"\n"}
-                      <span className="s"># ЗАДАЧА:</span> вынести детектор активности речи в отдельный процесс{"\n"}
-                      <span className="k">{message.code.lines[1].split(":")[0]}</span>: новый
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
 
           <div className="composer-wrap">
@@ -742,6 +786,7 @@ export function Workspace({
           </div>
         </main>
 
+        {telemetryOpen && !focusMode && (
         <aside className="panel" aria-label="Телеметрия">
           <div className="panel-head">
             <h2>{tr("panel.telemetry")}</h2>
@@ -798,6 +843,7 @@ export function Workspace({
             <Activity />
           </div>
         </aside>
+        )}
       </div>
 
       {panel !== "none" && <ProjectPanel kind={panel} onClose={() => setPanel("none")} />}

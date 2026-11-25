@@ -14,7 +14,7 @@ async function openWorkspace(page: Page) {
   });
   await page.goto("/");
   await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
-  await expect(page.getByText("загружена и готова")).toBeVisible();
+  await expect(page.getByText("Ядро в сети")).toBeVisible();
   return { consoleErrors, serverErrors };
 }
 
@@ -24,6 +24,26 @@ function assertNoErrors(errors: { consoleErrors: string[]; serverErrors: string[
 }
 
 test.describe("F04 текстовая беседа с контекстом", () => {
+  test("S03-H1 телеметрия скрыта и открывается Ctrl+.", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    const panel = page.getByRole("complementary", { name: "Телеметрия" });
+    await expect(panel).toHaveCount(0);
+    await page.keyboard.press("Control+.");
+    await expect(panel).toBeVisible();
+    await page.keyboard.press("Control+.");
+    await expect(panel).toHaveCount(0);
+  });
+
+  test("S02-H1 режим фокуса убирает боковые панели", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Ядро в сети")).toBeVisible();
+    await page.getByRole("button", { name: "Фокус" }).click();
+    await expect(page.getByRole("complementary", { name: "История диалогов" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Выйти" }).click();
+    await expect(page.getByRole("complementary", { name: "История диалогов" })).toBeVisible();
+  });
+
   test("F04-H1 Send → стриминговый ответ → история", async ({ page }) => {
     const errors = await openWorkspace(page);
     const input = page.getByRole("textbox", { name: "Сообщение" });

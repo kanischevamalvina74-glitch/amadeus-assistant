@@ -525,3 +525,76 @@
   }
   .attachment button { border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
   .attachment-error { margin: 0 0 var(--space-2); color: var(--color-danger); font-size: var(--text-xs-size); }
+
+/* Чат: разговор вместо кабины. Плашка пользователя справа, ответ слева. */
+.chat .msg { grid-template-columns: 1fr; gap: 4px; }
+.chat .msg.user { justify-items: end; }
+.chat .msg.user .body {
+  width: fit-content; max-width: 82%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  border-left: 1px solid var(--color-border);
+}
+.chat .msg.assistant { justify-items: start; }
+.chat .msg.assistant .body {
+  width: 100%; max-width: 86%;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  background: none;
+}
+.chat .msg .who {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+  font-size: 9px;
+  padding: 0;
+}
+.chat .msg:hover .who,
+.chat .msg:focus-within .who { opacity: 1; }
+.chat .msg.user .who { text-align: right; }
+.tool-chip {
+  width: fit-content;
+  margin: 6px 0;
+  padding: 3px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.tool-chip summary { list-style: none; }
+.tool-chip summary::-webkit-details-marker { display: none; }
+.tool-chip[open] { border-radius: var(--radius-sm); }
+.tool-chip[open] span { display: block; margin-top: 4px; color: var(--color-text-faint); }
+.code { position: relative; }
+.code-copy {
+  position: absolute; top: 6px; right: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.code-copy:hover { color: var(--color-accent); border-color: var(--color-accent-dim); }
+
+/* Статусная строка: кликабельная телеметрия. */
+.status-chip {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.status-chip strong { color: var(--color-accent); font-weight: 600; }
+.status-chip:hover strong { text-decoration: underline; }
+
+/* Режим фокуса: убираем рельс и панели, остаётся сфера, чат и ввод. */
+.app[data-focus="true"] .rail { display: none; }
+.app[data-focus="true"] .sidebar,
+.app[data-focus="true"] .panel { display: none; }
+.app[data-focus="true"] .shell { grid-template-columns: 1fr; }

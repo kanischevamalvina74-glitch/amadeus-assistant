@@ -10,6 +10,40 @@ use base64::Engine;
 use serde_json::{json, Value};
 use tauri::Manager;
 
+/// Поднимает Python-sidecar с ядром. В dev-режиме исходники рядом с src-tauri,
+/// в релизе — в resources (см. tauri.conf.json).
+#[tauri::command]
+fn start_backend(app: tauri::AppHandle) -> Result<String, String> {
+    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    let dev_dir = std::env::current_dir()
+        .unwrap_or_default()
+        .parent()
+        .map(|p| p.join("backend"))
+        .unwrap_or_default();
+    let backend = if resource_dir.join("backend/core/app.py").exists() {
+        resource_dir.join("backend")
+    } else if dev_dir.join("core/app.py").exists() {
+        dev_dir
+    } else {
+        return Err("не найдено ядро backend/core/app.py".into());
+    };
+
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(data_dir.join("data")).map_err(|e| e.to_string())?;
+    let python = std::env::var("AMADEUS_PYTHON").unwrap_or_else(|_| "python".into());
+    let child = std::process::Command::new(python)
+        .args([
+            "-m", "uvicorn", "core.app:app",
+            "--host", "127.0.0.1", "--port", "8787",
+        ])
+        .current_dir(&backend)
+        .env("AMADEUS_DB_PATH", data_dir.join("data/dev.db"))
+        .env("AMADEUS_SECRET_STORE", "keyring")
+        .spawn()
+        .map_err(|e| format!("не удалось запустить Python: {e}"))?;
+    Ok(format!("sidecar pid {}", child.id()))
+}
+
 #[tauri::command]
 fn app_health() -> Value {
     json!({ "status": "ok", "shell": "tauri", "version": "0.1.0" })
@@ -142,6 +176,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             app_health,
+            start_backend,
             notify_os,
             capture_screen_base64,
             window_hide,

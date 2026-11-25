@@ -61,7 +61,10 @@ class Settings:
             db_path=db_path,
             db_key=db_key,
             allow_plaintext_db=allow_plaintext,
-            allow_user_override=_as_bool("AMADEUS_ALLOW_USER_OVERRIDE"),
+            allow_user_override=(
+                _as_bool("AMADEUS_ALLOW_USER_OVERRIDE")
+                and os.getenv("AMADEUS_ENV", "dev") != "production"
+            ),
             ollama_base_url=os.getenv("AMADEUS_OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/"),
             ollama_model=os.getenv(
                 "AMADEUS_OLLAMA_MODEL",

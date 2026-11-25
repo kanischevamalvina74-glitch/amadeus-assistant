@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { wsUrl } from "../lib/api";
 
 export type VoiceSocketEvent = {
   event: string;
@@ -45,9 +46,8 @@ export function useVoiceSocket(onEvent: (event: VoiceSocketEvent) => void): Voic
       if (socket.current) return true;
       if (!navigator.mediaDevices?.getUserMedia) return false;
 
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const query = conversationId ? `?conversation_id=${encodeURIComponent(conversationId)}` : "";
-      const ws = new WebSocket(`${protocol}//${window.location.host}/ws/voice${query}`);
+      const ws = new WebSocket(wsUrl(`/ws/voice${query}`));
       ws.binaryType = "arraybuffer";
       ws.onmessage = (message) => {
         if (typeof message.data !== "string") return;

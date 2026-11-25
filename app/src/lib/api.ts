@@ -28,7 +28,13 @@ export type BackendMessage = {
   created_at: string;
 };
 
-const BASE = "/api";
+const TAURI = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+export const backendOrigin = TAURI ? "http://127.0.0.1:8787" : "";
+const BASE = `${backendOrigin}/api`;
+export const wsUrl = (path: string): string =>
+  TAURI
+    ? `ws://127.0.0.1:8787${path}`
+    : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}${path}`;
 
 async function request<T>(path: string, init?: RequestInit, timeout = 4000): Promise<T> {
   const controller = new AbortController();
@@ -61,6 +67,15 @@ export async function waitForBackend(attempts = 3): Promise<void> {
 
 /** Нативные команды доступны только внутри оболочки Tauri. */
 export const shell = {
+  async startBackend(): Promise<string | null> {
+    if (!TAURI) return null;
+    try {
+      return await invoke<string>("start_backend");
+    } catch {
+      return null;
+    }
+  },
+
   async notify(title: string, body: string): Promise<boolean> {
     if (!("__TAURI_INTERNALS__" in window)) return false;
     try {
@@ -588,5 +603,15 @@ export const memoryApi = {
   summarize: api.memorySummarize,
 };
 
-export const toTime = (iso: string): string =>
-  new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+export const toTime = (iso: string | null | undefined): string => {
+  if (!iso) return "только что";
+  const date = new Date(iso);
+  const time = date.getTime();
+  if (!Number.isFinite(time)) return "только что";
+  const seconds = Math.max(0, (Date.now() - time) / 1000);
+  if (seconds < 60) return "только что";
+  if (seconds < 86400 && date.toDateString() === new Date().toDateString()) {
+    return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  }
+  return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" });
+};

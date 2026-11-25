@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { wsUrl } from "../lib/api";
 
 type WakeEvent = {
   event: string;
@@ -39,8 +40,7 @@ export function useWakeSocket({ onWake, onHeard }: Options) {
 
   const start = useCallback(async (): Promise<boolean> => {
     if (socket.current || !navigator.mediaDevices?.getUserMedia) return false;
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/wake`);
+    const ws = new WebSocket(wsUrl("/ws/wake"));
     ws.binaryType = "arraybuffer";
     ws.onmessage = (message) => {
       if (typeof message.data !== "string") return;

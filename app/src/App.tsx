@@ -72,6 +72,7 @@ export default function App() {
     hasModel: false,
     models: [],
   });
+  const [latency, setLatency] = useState<{ ms: number; tps: number } | null>(null);
   const busy = useRef(false);
   const firedReminders = useRef<Set<string>>(new Set());
 
@@ -157,6 +158,7 @@ export default function App() {
     let cancelled = false;
     const init = async () => {
       try {
+        await shell.startBackend();
         await waitForBackend();
         const setup = await api.setupStatus();
         if (setup.needsSetup) {
@@ -312,6 +314,7 @@ export default function App() {
     if (backendOnline && conversationId) {
       const answerId = newId();
       let received = "";
+      const startedAt = performance.now();
       try {
         await streamAnswer(conversationId, text.trim(), (chunk) => {
           if (!received) {
@@ -329,6 +332,11 @@ export default function App() {
           }
         }, undefined, attachments);
         if (!received.trim()) throw new Error("ядро вернуло пустой ответ");
+        const elapsed = Math.max(0.001, (performance.now() - startedAt) / 1000);
+        setLatency({
+          ms: Math.round(elapsed * 1000),
+          tps: Math.round((received.trim().length / 4 / elapsed) * 10) / 10,
+        });
         setMessages((prev) =>
           prev.map((item) =>
             item.id === answerId ? { ...item, text: received.trim(), streaming: false } : item,
@@ -520,6 +528,8 @@ export default function App() {
             setView("mini");
           }}
           onToggleTheme={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}
+          latencyMs={latency?.ms ?? null}
+          tokensPerSecond={latency?.tps ?? null}
         />
       </div>
 

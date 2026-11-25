@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import ValidationError
 
@@ -219,6 +220,18 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Amadeus core", version="0.1.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
+    ],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Amadeus-User-Id"],
+)
 
 
 @app.middleware("http")
@@ -742,9 +755,22 @@ async def chat_stream_with_files(body: StreamBody, user_id: str = Depends(curren
 
 # --- Голосовая сессия (F02, F03, F21) ---------------------------------------
 
+def _ws_origin_allowed(websocket: WebSocket) -> bool:
+    """Пускать только локальный UI: браузерный dev-сервер и Tauri."""
+    origin = websocket.headers.get("origin", "")
+    if not origin:
+        return True  # нативные клиенты без Origin
+    if origin in {"tauri://localhost", "https://tauri.localhost", "http://tauri.localhost"}:
+        return True
+    return urlparse(origin).hostname in {"127.0.0.1", "localhost", "::1"}
+
+
 @app.websocket("/ws/voice")
 async def voice_session(websocket: WebSocket, user_id: str = Depends(current_user)) -> None:
     """Живая сессия: бинарные аудиокадры PCM16 → события VAD/STT/TTS, barge-in."""
+    if not _ws_origin_allowed(websocket):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     with db.connect(settings) as conn:  # профиль создаётся лениво
         db.ensure_user(conn, user_id)
@@ -836,6 +862,9 @@ async def wake_session(websocket: WebSocket) -> None:
     Браузер держит микрофон включённым и шлёт PCM16 20 мс. Распознавание
     запускается только после паузы, поэтому процессор не занят постоянно.
     """
+    if not _ws_origin_allowed(websocket):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     vad_mode = os.getenv("AMADEUS_VAD", "energy")
     vad = voice.SileroVAD() if vad_mode == "silero" else voice.EnergyVAD()
@@ -1305,6 +1334,14 @@ async def actions_approve(body: ByIdWithReason, user_id: str = Depends(current_u
         if row["status"] not in {"proposed", "approved"}:
             raise HTTPException(409, "Действие уже завершено")
         args = json.loads(row["args_json"])
+        if row["tool_name"] in {"terminal.run", "system.power", "fs.move"}:
+            conn.execute(
+                """insert into action_logs (id, action_id, user_id, summary, created_at)
+                   values (?, ?, ?, ?, ?)""",
+                (db.new_id(), body.id, user_id,
+                 f"Одобрил {row['tool_name']}: {json.dumps(args, ensure_ascii=False)[:200]}",
+                 db.now_iso()),
+            )
         return await _execute_action(conn, body.id, user_id, row["tool_name"], args)
 
 
