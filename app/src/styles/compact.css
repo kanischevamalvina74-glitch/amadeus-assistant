@@ -1,0 +1,135 @@
+/* «Камерный» вид: та же латунь и курсив, но без рамок и лишних этажей.
+   Подключается последним и только уплотняет; режим «Сфера» не трогает. */
+
+:root {
+  --layout-status: 22px;
+  --layout-rail: 48px;
+  --layout-sidebar: 232px;
+  --layout-content-max: 780px;
+}
+
+/* ---------- верхняя строка: только состояние, процессор и тема ---------- */
+.statusbar { font-size: 9.5px; gap: 10px; padding: 0 12px; }
+.statusbar .status-extra { display: none; }
+.statusbar .theme-toggle { padding: 1px 8px; font-size: 9px; }
+
+/* ---------- рельс и история ---------- */
+.rail { gap: 2px; padding: 8px 0; }
+.rail button { width: 34px; height: 34px; }
+.sidebar-head { padding: 10px 12px 6px; }
+.sidebar .search { margin: 0 10px 6px; padding: 5px 8px; font-size: 12px; }
+.threads { padding: 0 6px; }
+.group-label { margin: 8px 6px 2px; }
+.thread { padding-top: 6px; padding-bottom: 6px; min-height: 32px; }
+.thread .snippet { display: none; }
+
+/* ---------- одна шапка ---------- */
+.stage-head { padding: 8px 16px; min-height: 44px; gap: 8px; }
+.stage-head .name { font-size: 20px; }
+.stage-head .model { font-size: 9.5px; padding: 1px 5px; }
+.stage-head .hud-label { display: none; }
+.head-actions { display: flex; align-items: center; gap: 2px; }
+.stage-head .collapse-btn {
+  border: 0; background: none; box-shadow: none;
+  padding: 4px 8px; border-radius: var(--radius-sm);
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+  letter-spacing: 0; text-transform: none;
+  color: var(--color-text-muted);
+}
+.stage-head .collapse-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+/* «Мастерская» уже есть на рельсе — в шапке не дублируем. */
+.app:not([data-sphere="true"]) .stage-head .collapse-btn:nth-child(3) { display: none; }
+
+/* ---------- пустой экран: сфера без рамки, сетки и подписей ---------- */
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud-scene {
+  height: 240px; margin: 8px 16px 0;
+  border: 0; background: none; box-shadow: none; background-image: none;
+}
+.app:not([data-sphere="true"]) .hud-scene::before,
+.app:not([data-sphere="true"]) .hud-scene::after,
+.app:not([data-sphere="true"]) .hud-scene .hud-corners { display: none; }
+.app:not([data-sphere="true"]) .hud-meta,
+.app:not([data-sphere="true"]) .tool-satellites,
+.app:not([data-sphere="true"]) .scan { display: none; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud { transform: scale(.74); }
+
+/* ---------- в разговоре HUD уходит в шапку: мини-сфера и статус по центру ---------- */
+.app:not([data-sphere="true"]) .stage[data-hud="compact"] .hud-scene {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  height: 44px; width: auto; margin: 0; padding: 0 8px;
+  border: 0; background: none; box-shadow: none; background-image: none;
+  overflow: visible; z-index: 4; display: flex; align-items: center;
+}
+.stage[data-hud="compact"] .hud-compact {
+  position: static; transform: none; gap: 8px;
+}
+.hud-compact__column { position: relative; }
+.hud-compact__status,
+button.hud-compact__status {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase; line-height: 1;
+}
+.stage[data-hud="compact"] .hud-error--inline {
+  position: absolute; top: calc(100% + 10px); left: 0;
+  padding: 6px 10px; border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); background: var(--color-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+}
+
+/* ---------- чат: плотный ритм, без рамок ---------- */
+.chat { padding: 16px 20px 8px; gap: 14px; }
+.chat .msg--grouped { margin-top: -8px; }
+.chat .msg { position: relative; gap: 0; }
+/* Время показывается при наведении и больше не занимает отдельную строку. */
+.chat .msg .who {
+  position: absolute; top: -13px; left: 14px; line-height: 1;
+  pointer-events: none;
+}
+.chat .msg.user .who { left: auto; right: 4px; }
+.msg .body { font-size: 14.5px; line-height: 1.55; }
+.chat .msg.user .body {
+  padding: 6px 12px; border: 0; border-radius: 14px;
+  background: var(--color-surface-2);
+}
+.chat .msg.assistant .body { padding: 0 0 0 12px; max-width: 100%; }
+.regenerate { margin-top: 4px; font-size: 11.5px; }
+.model-error-card { margin-top: 6px; }
+
+.greeting { margin: auto 0 4px; padding: 0 2px 10px; }
+.greeting__line { font-size: 26px; margin-bottom: 4px; }
+
+/* ---------- поле ввода в одну строку ---------- */
+.composer-wrap { padding: 0 20px 12px; }
+.composer {
+  align-items: center; gap: 2px;
+  padding: 4px 4px 4px 12px; border-radius: 12px;
+  box-shadow: none;
+}
+.composer:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.composer .input { font-size: 14px; padding: 6px 0; }
+.composer .icon-btn { width: 30px; height: 30px; }
+.composer .send { width: 30px; height: 30px; margin-left: 4px; border-radius: 9px; }
+.composer .stop-btn { height: 26px; padding: 0 8px; font-size: 11.5px; }
+.hints { display: none; }
+.quick-prompts { margin-top: 8px; gap: 6px; }
+
+/* ---------- узкое окно ---------- */
+@media (max-width: 960px) {
+  .statusbar { flex-wrap: nowrap; }
+  .app:not([data-sphere="true"]) .stage[data-hud="full"] .hud-scene { height: 180px; min-height: 0; }
+  .app:not([data-sphere="true"]) .stage[data-hud="compact"] .hud-scene { min-height: 0; height: 44px; }
+  .chat, .composer-wrap { padding-left: 12px; padding-right: 12px; }
+  .stage-head .model { display: none; }
+}
+
+/* В шапке хватает кораллового цвета и подписи — значок «!» на 26 px лишний. */
+.hud-compact .mini__alert,
+.hud-compact .mini__tip { display: none; }
+
+/* Пустой экран: сфера, приветствие и поле ввода одним блоком по центру. */
+.app:not([data-sphere="true"]) .stage[data-hud="full"] { justify-content: center; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .stage-head { position: absolute; top: 0; left: 0; right: 0; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .hud-scene { height: 220px; margin-top: 0; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .chat { flex: 0 0 auto; overflow: visible; padding-top: 0; }
+.stage[data-hud="full"] .greeting { margin: 0 auto; text-align: center; }
+.app:not([data-sphere="true"]) .stage[data-hud="full"] .quick-prompts { justify-content: center; }

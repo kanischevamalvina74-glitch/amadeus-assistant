@@ -10,5 +10,6 @@ import App from "./App";
 import "./styles/tokens.css";
 import "./styles/primitives.css";
 import "./styles/workspace.css";
+import "./styles/compact.css";
 
 createRoot(document.getElementById("root")!).render(<App />);

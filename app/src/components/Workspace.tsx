@@ -550,8 +550,8 @@ export function Workspace({
         <strong>{!backendOnline ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}</strong>
         <span className="sep">/</span>
         <span>{backendOnline ? tr("status.storage") : tr("status.demo")}</span>
-        <span className="sep">/</span>
-        <span>{tr("status.russian")}</span>
+        <span className="sep status-extra">/</span>
+        <span className="status-extra">{tr("status.russian")}</span>
         <span className="grow" />
         <button
           type="button"
@@ -562,12 +562,12 @@ export function Workspace({
         >
           {tr("status.cpu")} <strong>{metrics ? `${metrics.cpu}%` : "-"}</strong>
         </button>
-        <span className="sep">·</span>
-        <span>
+        <span className="sep status-extra">·</span>
+        <span className="status-extra">
           {tr("status.memory")} <strong>{metrics ? `${metrics.memory.used_gb} ГБ` : "—"}</strong>
         </span>
-        <span className="sep">·</span>
-        <span className="amber">
+        <span className="sep status-extra">·</span>
+        <span className="amber status-extra">
           {tr("status.temp")} <strong>{metrics?.temperature_c != null ? `${metrics.temperature_c} °C` : "—"}</strong>
         </span>
         <button className="theme-toggle" onClick={onToggleTheme} title="Переключить тему">
@@ -733,7 +733,7 @@ export function Workspace({
 
             {!sphereMode && (
               <div className="hud-compact">
-                <MiniCore state={state} size={64} />
+                <MiniCore state={state} size={26} />
                 <div className="hud-compact__column">
                   <span className="sr-only" role="status" aria-label="Состояние ядра">
                     ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
