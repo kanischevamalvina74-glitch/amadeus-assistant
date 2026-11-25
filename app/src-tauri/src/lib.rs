@@ -51,6 +51,13 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
     if backend_port_open() {
         return Ok("ядро уже отвечает на :8787".into());
     }
+    // Не запускаем второй сайдкар от того же приложения.
+    {
+        let guard = state.0.lock().map_err(|e| e.to_string())?;
+        if guard.is_some() {
+            return Ok("ядро уже запущено этим приложением".into());
+        }
+    }
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     std::fs::create_dir_all(data_dir.join("data")).map_err(|e| e.to_string())?;
     let db_path = data_dir.join("data/amadeus.db");
@@ -97,6 +104,20 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
                 }
             }
         });
+        // Ждём, пока ядро реально поднимет порт. Иначе при быстром повторном
+        // вызове запускается ещё один сайдкар, который не может занять порт.
+        let mut ready = false;
+        for _ in 0..50 {
+            if backend_port_open() {
+                ready = true;
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+        if !ready {
+            let _ = child.kill();
+            return Err("ядро не ответило на :8787".into());
+        }
         *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Sidecar(child));
         return Ok("ядро запущено из externalBin".into());
     }
@@ -265,6 +286,13 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // Повторный запуск только фокусирует уже открытое окно.
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .manage(SidecarState(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             app_health,
