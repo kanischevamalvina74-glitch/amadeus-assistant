@@ -1,0 +1,36 @@
+.splash {
+  position: fixed; inset: 0; z-index: 20_000;
+  display: grid; place-content: center; justify-items: center; gap: 26px;
+  background: var(--color-bg);
+  pointer-events: none;
+  transition: opacity 160ms var(--ease);
+}
+.splash--leaving { opacity: 0; }
+.splash--brief .splash__mark,
+.splash--brief .splash__word { animation-duration: 220ms; }
+
+.splash__mark { position: relative; width: 120px; height: 120px; }
+.splash__dot {
+  position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  background: var(--reactor-core); box-shadow: 0 0 18px var(--reactor-glow);
+  animation: splash-dot 520ms var(--ease) both;
+}
+.splash__orbit {
+  position: absolute; left: 50%; top: 50%; border-radius: 50%;
+  border: 1px solid var(--color-brass-dark);
+  transform: translate(-50%, -50%) rotate(-30deg);
+  animation: splash-orbit 620ms var(--ease) both;
+}
+.splash__orbit--1 { width: 54px; height: 54px; border-color: var(--color-accent-dim); animation-delay: 120ms; }
+.splash__orbit--2 { width: 86px; height: 86px; transform: translate(-50%, -50%) rotate(30deg); animation-delay: 220ms; }
+.splash__orbit--3 { width: 118px; height: 118px; animation-delay: 320ms; }
+.splash__word {
+  font-family: var(--font-serif); font-style: italic; font-weight: 600;
+  font-size: 44px; line-height: 1; color: var(--color-brass-bright);
+  animation: splash-word 700ms var(--ease) both;
+  animation-delay: 520ms;
+}
+@keyframes splash-dot { from { opacity: 0; transform: translate(-50%, -50%) scale(.2); } to { opacity: 1; } }
+@keyframes splash-orbit { from { opacity: 0; transform: translate(-50%, -50%) scale(.5) rotate(-30deg); } to { opacity: .8; } }
+@keyframes splash-word { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

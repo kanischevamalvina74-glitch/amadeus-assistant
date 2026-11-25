@@ -80,8 +80,8 @@ test.describe("S08/S15 настройки и F05 вложения", () => {
     await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
     await page.getByRole("button", { name: "Настройки" }).click();
     const dialog = page.getByRole("dialog", { name: "Настройки" });
-    await dialog.getByLabel("Акцент").selectOption("amber");
-    await expect(page.locator("html")).toHaveAttribute("data-accent", "amber");
+    await dialog.getByLabel("Акцент").selectOption("brass");
+    await expect(page.locator("html")).toHaveAttribute("data-accent", "brass");
     await dialog.getByLabel("Акцент").selectOption("cyan");
     await expect(page.locator("html")).toHaveAttribute("data-accent", "cyan");
     await dialog.getByRole("button", { name: "Закрыть настройки" }).click();

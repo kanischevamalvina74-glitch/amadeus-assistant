@@ -5,7 +5,7 @@ async function collapse(page: Page) {
   await page.goto("/");
   await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
   await page.getByRole("button", { name: "Свернуть" }).click();
-  await expect(page.getByLabel("Свёрнутый режим Амадеуса")).toBeVisible();
+  await expect(page.getByLabel("Свёрнутый режим Amadeus")).toBeVisible();
 }
 
 test.describe("F21 кодовая фраза и свёрнутый режим", () => {
@@ -72,7 +72,7 @@ test.describe("F21 кодовая фраза и свёрнутый режим", 
     await page.goto("/");
     await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByLabel("Свёрнутый режим Амадеуса")).toBeVisible();
+    await expect(page.getByLabel("Свёрнутый режим Amadeus")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
   });

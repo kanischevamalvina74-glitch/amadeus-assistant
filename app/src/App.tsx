@@ -6,6 +6,7 @@ import { Workshop } from "./components/Workshop";
 import { ControlCenter } from "./components/ControlCenter";
 import { Settings } from "./components/Settings";
 import { Setup } from "./components/Setup";
+import { Splash } from "./components/Splash";
 import { initialMessages, nowTime, type ChatMessage, type Conversation } from "./data/mock";
 import { playCue } from "./lib/sound";
 import {
@@ -50,8 +51,26 @@ const toTurns = (messages: ChatMessage[]): ChatTurn[] =>
     .slice(-16)
     .map((message) => ({ role: message.role, content: message.text }));
 
+type ThemeMode = "dark" | "light" | "auto";
+
+function loadThemeMode(): ThemeMode {
+  try {
+    const raw = localStorage.getItem("amadeus.themeMode");
+    return raw === "light" || raw === "auto" ? raw : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function resolveTheme(mode: ThemeMode): "dark" | "light" {
+  if (mode !== "auto") return mode;
+  const hour = new Date().getHours();
+  return hour >= 7 && hour < 19 ? "light" : "dark";
+}
+
 export default function App() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [themeMode, setThemeMode] = useState<ThemeMode>(loadThemeMode);
+  const [theme, setTheme] = useState<"dark" | "light">(() => resolveTheme(loadThemeMode()));
   const [view, setView] = useState<View>("workspace");
   const [autoWake, setAutoWake] = useState(false);
   const [workshopOpen, setWorkshopOpen] = useState(false);
@@ -76,6 +95,17 @@ export default function App() {
   const [latency, setLatency] = useState<{ ms: number; tps: number } | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const [splash, setSplash] = useState<{ brief: boolean } | null>(() => {
+    if (typeof navigator !== "undefined" && navigator.webdriver) return null;
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const brief = localStorage.getItem("amadeus.splashDate") === today;
+      localStorage.setItem("amadeus.splashDate", today);
+      return { brief };
+    } catch {
+      return { brief: false };
+    }
+  });
   const busy = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
@@ -86,6 +116,23 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem("amadeus.themeMode", themeMode);
+    } catch {
+      /* приватный режим */
+    }
+    setTheme(resolveTheme(themeMode));
+    if (themeMode !== "auto") return;
+    const timer = window.setInterval(() => setTheme(resolveTheme("auto")), 60_000);
+    return () => window.clearInterval(timer);
+  }, [themeMode]);
+
+  const chooseTheme = useCallback((mode: ThemeMode) => {
+    setThemeMode(mode);
+    setTheme(resolveTheme(mode));
+  }, []);
+
+  useEffect(() => {
     if (state === "speaking") playCue("answer");
     if (state === "error") playCue("error");
   }, [state]);
@@ -93,7 +140,12 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const apply = (value: string) => {
-      document.documentElement.dataset.accent = value === "amber" || value === "violet" || value === "green" ? value : "cyan";
+      document.documentElement.dataset.accent =
+        value === "brass" || value === "amber" || value === "violet"
+          ? "brass"
+          : value === "green"
+            ? "green"
+            : "cyan";
     };
     void prefs.get(["ui.accent"]).then((values) => {
       if (!cancelled) apply(String(values["ui.accent"] ?? "cyan"));
@@ -118,6 +170,8 @@ export default function App() {
     const next = await checkModel();
     setModel(next);
   }, []);
+
+  const closeSplash = useCallback(() => setSplash(null), []);
 
   useEffect(() => {
     void refreshModel();
@@ -561,6 +615,7 @@ export default function App() {
 
   return (
     <>
+      {splash && <Splash brief={splash.brief} onDone={closeSplash} />}
       <div hidden={view !== "workspace"}>
         <Workspace
           messages={messages}
@@ -599,7 +654,7 @@ export default function App() {
             setAutoWake(true);
             setView("mini");
           }}
-          onToggleTheme={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}
+          onToggleTheme={() => chooseTheme(theme === "dark" ? "light" : "dark")}
           onStop={stopAnswer}
           onRegenerate={regenerate}
           latencyMs={latency?.ms ?? null}
@@ -632,8 +687,8 @@ export default function App() {
 
       {settingsOpen && (
         <Settings
-          theme={theme}
-          onTheme={setTheme}
+          theme={themeMode}
+          onTheme={chooseTheme}
           onOpenCenter={() => setCenterOpen(true)}
           onClose={() => setSettingsOpen(false)}
         />

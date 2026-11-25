@@ -15,6 +15,14 @@ async function openCenter(page: Page) {
 }
 
 test.describe("F10/F15/F17 Центр управления", () => {
+  test.beforeEach(async ({ page }) => {
+    const response = await page.request.get("/api/actions.list");
+    const actions = (await response.json()) as Array<{ id: string; status: string }>;
+    for (const action of actions.filter((item) => item.status === "proposed")) {
+      await page.request.post("/api/actions.deny", { data: { id: action.id, reason: "e2e cleanup" } });
+    }
+  });
+
   test("F17-H2 Approve-карточка в чате", async ({ page }) => {
     await page.request.post("/api/actions.propose", {
       data: { tool: "notify", args: { text: "карточка в чате" }, risk: "low" },

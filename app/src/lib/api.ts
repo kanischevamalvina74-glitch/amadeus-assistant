@@ -111,6 +111,19 @@ export const shell = {
     if (!("__TAURI_INTERNALS__" in window)) return;
     await invoke("window_show").catch(() => undefined);
   },
+
+  async setFullscreen(enabled: boolean): Promise<void> {
+    if ("__TAURI_INTERNALS__" in window) {
+      await invoke("window_fullscreen", { enabled }).catch(() => undefined);
+      return;
+    }
+    try {
+      if (enabled && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+      if (!enabled && document.fullscreenElement) await document.exitFullscreen();
+    } catch {
+      // браузер может запретить полноэкранный режим без жеста пользователя
+    }
+  },
 };
 
 export const api = {

@@ -121,7 +121,7 @@ export function Workshop({ commands, onCommands, avatar, onAvatar, onTelegramCom
       role="presentation"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
-      <section className="workshop" role="dialog" aria-modal="true" aria-label="Мастерская Амадеуса">
+      <section className="workshop" role="dialog" aria-modal="true" aria-label="Мастерская Amadeus">
         <aside className="workshop__side">
           <div className="workshop__brand">
             <span className="workshop__logo">A</span>

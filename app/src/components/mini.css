@@ -16,7 +16,7 @@
     linear-gradient(to bottom, var(--hud-grid-line) 1px, transparent 1px);
   background-size: 56px 56px;
   opacity: .12;
-  mask-image: radial-gradient(90% 80% at 50% 40%, #000 20%, transparent 100%);
+  mask-image: radial-gradient(90% 80% at 50% 40%, var(--color-mask) 20%, transparent 100%);
   pointer-events: none;
 }
 
@@ -104,8 +104,16 @@
   line-height: 1.45;
   box-shadow: var(--shadow-card);
 }
-.mini-subtitle b { color: var(--color-accent); font-weight: 600; }
-.mini-subtitle--live { border-left-color: var(--color-hud-amber); }
+.mini-subtitle {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 19px;
+  line-height: 1.4;
+  color: var(--color-brass-bright);
+}
+.mini-subtitle b { color: var(--color-brass); font-weight: 600; }
+.mini-subtitle--live { border-left-color: var(--color-brass); }
 
 .mini-hint {
   position: fixed;

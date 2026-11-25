@@ -5,8 +5,9 @@ test.describe("F01 первый запуск", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.request.post("/api/settings.patch", {
-      data: { patch: { "setup.completed": false } },
+      data: { patch: { "setup.completed": false, "app.locale": "ru" } },
     });
+    await page.request.post("/api/settings.locale", { data: { locale: "ru" } });
   });
 
   test.afterEach(async ({ page }) => {

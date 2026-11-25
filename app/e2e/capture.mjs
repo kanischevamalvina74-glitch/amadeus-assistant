@@ -14,7 +14,7 @@ await page.waitForTimeout(800);
 await page.screenshot({ path: resolve(dir, "S02_workspace.png") });
 
 await page.getByRole("button", { name: "Свернуть" }).click();
-await page.getByLabel("Свёрнутый режим Амадеуса").waitFor();
+await page.getByLabel("Свёрнутый режим Amadeus").waitFor();
 await page.waitForTimeout(400);
 await page.screenshot({ path: resolve(dir, "S27_mini.png") });
 

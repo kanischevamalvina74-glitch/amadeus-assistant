@@ -435,7 +435,7 @@ export function ControlCenter({ onClose }: { onClose: () => void }) {
                               const result = await control.approve(item.id);
                               if (result.ok && item.tool_name === "notify") {
                                 const args = JSON.parse(item.args_json) as { text?: string };
-                                await shell.notify("Амадеус", args.text ?? "Уведомление");
+                                await shell.notify("Amadeus", args.text ?? "Уведомление");
                               }
                               notify(result.message);
                               await load();

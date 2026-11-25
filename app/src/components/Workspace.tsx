@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HUDCore, MetricCard } from "./primitives";
+import { HUDCore, MiniCore, MetricCard } from "./primitives";
+import { RichText } from "./RichText";
 import { conversations, type ChatMessage, type Conversation } from "../data/mock";
 import type { HudState } from "./primitives";
 import { OLLAMA_LABEL, OLLAMA_MODEL, type ModelState } from "../lib/ollama";
@@ -7,6 +8,7 @@ import type { AttachmentPayload } from "../lib/api";
 import {
   api,
   control,
+  shell,
   system,
   workspaceApi,
   type ActionItem,
@@ -353,9 +355,13 @@ export function Workspace({
   const [focusMode, setFocusMode] = useState(false);
   const [sphereMode, setSphereMode] = useState(loadStartSphere);
   const [headMenuOpen, setHeadMenuOpen] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
   const [pendingActions, setPendingActions] = useState<ActionItem[]>([]);
   const [elapsed, setElapsed] = useState(0);
-  const [sessionStarted, setSessionStarted] = useState(false);
+
+  useEffect(() => {
+    if (state !== "error") setErrorOpen(false);
+  }, [state]);
 
   useEffect(() => {
     const startedAt = Date.now();
@@ -383,6 +389,14 @@ export function Workspace({
         setTelemetryOpen((value) => !value);
       }
       if (event.key === "Escape" && focusMode) setFocusMode(false);
+      if (event.key === "F11") {
+        event.preventDefault();
+        setSphereMode((value) => {
+          const next = !value;
+          void shell.setFullscreen(next);
+          return next;
+        });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -465,7 +479,6 @@ export function Workspace({
     const text = draft.trim();
     if (!text && files.length === 0) return;
     onSend(text || "Посмотри вложение", files);
-    setSessionStarted(true);
     setDraft("");
     setFiles([]);
     setFileError("");
@@ -501,15 +514,33 @@ export function Workspace({
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const hour = new Date().getHours();
+  const greetingLine = hour < 5 ? "Доброй ночи, мисс" : hour < 12 ? "Доброе утро, мисс" : hour < 18 ? "Добрый день, мисс" : "Добрый вечер, мисс";
   const lastError = [...messages].reverse().find((item) => item.error);
   const modelMissing = Boolean(
     lastError && (lastError.errorKind === "model-missing" || lastError.text.includes("404")),
   );
-  const lastAnswer = [...messages].reverse().find((item) => item.role === "assistant" && !item.error && item.text.trim());
+  const compactHud = messages.length > 0;
+  const visibleMessages = messages.filter(
+    (message, index, all) =>
+      all.findIndex((item) => item.id === message.id) === index &&
+      (message.streaming || message.text.trim() !== "" || Boolean(message.tools?.length) || Boolean(message.code)),
+  );
+  let lastAnswerIndex = -1;
+  for (let i = visibleMessages.length - 1; i >= 0; i -= 1) {
+    const item = visibleMessages[i];
+    if (item.role === "assistant" && !item.error && !item.streaming) {
+      lastAnswerIndex = i;
+      break;
+    }
+  }
+  const lastAnswer = lastAnswerIndex >= 0 ? visibleMessages[lastAnswerIndex] : undefined;
   const toggleSphere = () =>
     setSphereMode((value) => {
-      saveStartSphere(!value);
-      return !value;
+      const next = !value;
+      saveStartSphere(next);
+      if (!next) void shell.setFullscreen(false);
+      return next;
     });
 
   return (
@@ -546,7 +577,7 @@ export function Workspace({
 
       <div className="shell" data-panel={telemetryOpen ? "open" : "closed"}>
         <nav className="rail" aria-label="Основное">
-          <button aria-current="page" title="Амадеус">
+          <button aria-current="page" title="Amadeus">
             <Icon name="core" />
           </button>
           <button title={tr("nav.history")} aria-expanded={historyOpen} onClick={() => setHistoryOpen((value) => !value)}>
@@ -609,7 +640,7 @@ export function Workspace({
 
         <main className="stage" data-hud={messages.length > 0 ? "compact" : "full"}>
           <div className="stage-head">
-            <h1 className="name">Амадеус</h1>
+            <h1 className="name">Amadeus</h1>
             <span className={`model ${model.hasModel ? "" : "model--muted"}`} title={OLLAMA_MODEL}>
               {OLLAMA_LABEL}
             </span>
@@ -700,6 +731,39 @@ export function Workspace({
 
             <HUDCore state={state} size={sphereMode ? 380 : 248} />
 
+            {!sphereMode && (
+              <div className="hud-compact">
+                <MiniCore state={state} size={64} />
+                <div className="hud-compact__column">
+                  <span className="sr-only" role="status" aria-label="Состояние ядра">
+                    ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
+                  </span>
+                  {state === "error" ? (
+                    <button
+                      type="button"
+                      className={`hud-compact__status hud-compact__status--${state} hud-status-button`}
+                      aria-expanded={errorOpen}
+                      onClick={() => setErrorOpen((value) => !value)}
+                    >
+                      ● {tr("state.error")} · {errorOpen ? "скрыть" : "подробнее"}
+                    </button>
+                  ) : (
+                    <span className={`hud-compact__status hud-compact__status--${state}`}>
+                      ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
+                    </span>
+                  )}
+                  {compactHud && state === "error" && lastError && errorOpen && (
+                    <div className="hud-error hud-error--inline" role="alert">
+                      <span>{modelMissing ? "Модель не скачана" : "Не удалось получить ответ"}</span>
+                      <button type="button" onClick={onOpenSettings}>
+                        {modelMissing ? "Скачать" : "Настройки"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="tool-satellites" aria-hidden="true" title="Инструменты: память, поиск, экран, проект">
               <span className="satellite satellite--a"><Icon name="history" /></span>
               <span className="satellite satellite--b"><Icon name="plugins" /></span>
@@ -711,15 +775,15 @@ export function Workspace({
               <div className="sphere-subtitle" aria-live="polite">
                 {lastAnswer ? (
                   <>
-                    <b>Амадеус:</b> {lastAnswer.text}
+                    <b>Amadeus:</b> {lastAnswer.text}
                   </>
                 ) : (
-                  "Готов. Скажите «Амадеус» или введите сообщение ниже."
+                  "Готов. Скажите «Amadeus» или введите сообщение ниже."
                 )}
               </div>
             )}
 
-            {state === "error" && lastError && (
+            {state === "error" && lastError && errorOpen && (sphereMode || !compactHud) && (
               <div className="hud-error" role="alert">
                 <span>{modelMissing ? "Модель не скачана" : "Не удалось получить ответ"}</span>
                 <button type="button" onClick={onOpenSettings}>
@@ -729,7 +793,18 @@ export function Workspace({
             )}
 
             <div className="hud-caption" role="status" aria-label="Состояние ядра">
-              <span className="live">● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}</span>
+              {state === "error" ? (
+                <button
+                  type="button"
+                  className="hud-status-button"
+                  onClick={() => setErrorOpen((value) => !value)}
+                  aria-expanded={errorOpen}
+                >
+                  ● {tr("state.error")} · {errorOpen ? "скрыть" : "подробнее"}
+                </button>
+              ) : (
+                <span className="live">● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}</span>
+              )}
             </div>
           </div>
 
@@ -740,15 +815,17 @@ export function Workspace({
             aria-label="История сообщений"
             tabIndex={0}
           >
-            {messages
-              .filter(
-                (message, index, all) =>
-                  all.findIndex((item) => item.id === message.id) === index &&
-                  (message.streaming || message.text.trim() !== "" || Boolean(message.tools?.length) || Boolean(message.code)),
-              )
-              .map((message) => (
+            {messages.length === 0 && (
+              <div className="greeting">
+                <p className="greeting__line">{greetingLine}</p>
+                <p className="greeting__hint">Я за пультом. Скажите, что сыграть сегодня.</p>
+              </div>
+            )}
+            {visibleMessages.map((message, index) => (
                 <div
-                  className={`msg ${message.role} ${message.error ? "msg--error" : ""}`}
+                  className={`msg ${message.role} ${message.error ? "msg--error" : ""} ${
+                    index > 0 && visibleMessages[index - 1].role === message.role ? "msg--grouped" : ""
+                  }`}
                   key={message.id}
                   role="article"
                   aria-label={`Сообщение: ${message.role === "user" ? "вы" : "ядро"}`}
@@ -758,7 +835,7 @@ export function Workspace({
                     {message.role === "user" ? "ВЫ" : "ЯДРО"} · {message.time}
                   </div>
                   <div className="body">
-                    {message.text}
+                    {message.role === "assistant" ? <RichText text={message.text} /> : message.text}
                     {message.errorKind === "model-missing" && (
                       <div className="model-error-card" role="alert">
                         <button type="button" onClick={() => void navigator.clipboard.writeText(`ollama pull ${OLLAMA_MODEL}`)}>
@@ -773,6 +850,11 @@ export function Workspace({
                       </div>
                     )}
                     {message.streaming && <span className="stream-cursor" aria-hidden="true" />}
+                    {index === lastAnswerIndex && (
+                      <button type="button" className="regenerate" onClick={onRegenerate}>
+                        ↻ Перегенерировать
+                      </button>
+                    )}
                     {!message.streaming &&
                       message.tools?.map((tool) => (
                         <details className="tool-chip" key={tool.name}>
@@ -798,11 +880,6 @@ export function Workspace({
                 </div>
               ))}
 
-            {[...messages].reverse().find((item) => item.role === "assistant" && !item.streaming) && (
-              <button type="button" className="regenerate" onClick={onRegenerate}>
-                ↻ Перегенерировать
-              </button>
-            )}
           </div>
 
           {pendingActions.length > 0 && (
@@ -916,7 +993,7 @@ export function Workspace({
                 </svg>
               </button>
             </div>
-            {!sessionStarted && (
+            {messages.length === 0 && (
               <div className="quick-prompts" aria-label="Подсказки">
                 {["Что у меня сегодня?", "Открой проект", "Сделай скриншот", "Напомни через 10 минут"].map((hint) => (
                   <button key={hint} type="button" onClick={() => setDraft(hint)}>
@@ -1002,7 +1079,8 @@ export function Workspace({
           role="dialog"
           aria-label="Выделение области экрана"
           style={{
-            position: "fixed", inset: 0, zIndex: 10_000, background: "rgba(0, 0, 0, 0.4)",
+            position: "fixed", inset: 0, zIndex: 10_000,
+            background: "color-mix(in srgb, var(--color-mask) 40%, transparent)",
             cursor: "crosshair",
           }}
           onPointerDown={(event) => {
@@ -1046,8 +1124,8 @@ export function Workspace({
                 position: "absolute",
                 left: dragRect[0], top: dragRect[1],
                 width: dragRect[2], height: dragRect[3],
-                border: "2px solid var(--color-accent, #5cc)",
-                background: "rgba(80, 200, 200, 0.12)",
+                border: "2px solid var(--color-accent)",
+                background: "color-mix(in srgb, var(--color-accent) 12%, transparent)",
               }}
             />
           )}

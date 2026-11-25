@@ -50,7 +50,7 @@ export function Setup({ initialLocale, onComplete }: Props) {
       <div className="center">
         <div className="center-head">
           <div>
-            <h1>Добро пожаловать в Амадеуса</h1>
+            <h1>Добро пожаловать в Amadeus</h1>
             <p>Несколько шагов — и ассистент готов работать на вашем компьютере.</p>
           </div>
         </div>

@@ -179,6 +179,14 @@ fn window_show(app: tauri::AppHandle) {
     }
 }
 
+/// Полноэкранный режим для сцены «Сфера».
+#[tauri::command]
+fn window_fullscreen(app: tauri::AppHandle, enabled: bool) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_fullscreen(enabled);
+    }
+}
+
 macro_rules! stub {
     ($name:ident) => {
         #[tauri::command]
@@ -263,6 +271,7 @@ pub fn run() {
             capture_screen_base64,
             window_hide,
             window_show,
+            window_fullscreen,
             setup_status,
             setup_complete,
             settings_get,

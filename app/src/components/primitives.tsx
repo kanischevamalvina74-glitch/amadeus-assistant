@@ -402,6 +402,8 @@ export function HUDCore({ state = "idle", size = 248 }: { state?: HudState; size
   const tone =
     state === "error" ? "var(--color-danger)"
     : state === "muted" ? "var(--color-text-faint)"
+    : state === "thinking" ? "var(--color-brass)"
+    : state === "speaking" ? "var(--color-brass-bright)"
     : "var(--reactor-line)";
 
   return (

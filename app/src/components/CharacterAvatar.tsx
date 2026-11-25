@@ -43,7 +43,7 @@ export function CharacterAvatar({
       data-wake={wake || undefined}
       data-align={tipAlign}
       style={{ "--mini-size": `${size}px` } as CSSProperties}
-      aria-label={`Амадеус: ${LABEL[state]}. Открыть окно`}
+      aria-label={`Amadeus: ${LABEL[state]}. Открыть окно`}
       {...props}
     >
       <svg viewBox="0 0 120 120" className="avatar__svg" aria-hidden="true">

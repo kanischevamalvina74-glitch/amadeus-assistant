@@ -19,7 +19,7 @@ type Props = {
 
 const MIC_LABEL: Record<string, string> = {
   requesting: "включаю микрофон",
-  listening: "жду «Амадеус»",
+  listening: "жду «Amadeus»",
   denied: "нет доступа к микрофону",
   unsupported: "микрофон недоступен",
   error: "микрофон не отвечает",
@@ -31,12 +31,12 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
   const [caption, setCaption] = useState(tr("mini.wake"));
   const [level, setLevel] = useState(0);
   const [hintVisible, setHintVisible] = useState(true);
-  const [subtitles, setSubtitles] = useState<Array<{ speaker: "Вы" | "Амадеус"; text: string }>>([]);
+  const [subtitles, setSubtitles] = useState<Array<{ speaker: "Вы" | "Amadeus"; text: string }>>([]);
   const [liveAnswer, setLiveAnswer] = useState("");
   const answerRef = useRef("");
   const timers = useRef<number[]>([]);
 
-  const pushSubtitle = (speaker: "Вы" | "Амадеус", text: string) => {
+  const pushSubtitle = (speaker: "Вы" | "Amadeus", text: string) => {
     if (!text.trim()) return;
     setSubtitles((prev) => [...prev, { speaker, text }].slice(-2));
   };
@@ -68,7 +68,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
       setLiveAnswer(answerRef.current);
     }
     if (event.event === "audio") {
-      pushSubtitle("Амадеус", answerRef.current);
+      pushSubtitle("Amadeus", answerRef.current);
       answerRef.current = "";
       setLiveAnswer("");
       playCue("answer");
@@ -87,7 +87,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     }
     if (event.event === "canceled") {
       setState("idle");
-      setCaption("Отменено — скажите «Амадеус» снова");
+      setCaption("Отменено — скажите «Amadeus» снова");
     }
     if (event.event === "error") {
       setState("error");
@@ -124,7 +124,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
           const reply = await onVoiceCommand(text);
           setState("speaking");
           setCaption(reply);
-          pushSubtitle("Амадеус", reply);
+          pushSubtitle("Amadeus", reply);
           playCue("answer");
         } catch (error) {
           setState("error");
@@ -145,10 +145,10 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
   const handleCancel = useCallback(() => {
     voiceRef.current.stop();
     setState("idle");
-    setCaption("Не расслышал — скажите «Амадеус» снова");
+    setCaption("Не расслышал — скажите «Amadeus» снова");
   }, []);
 
-  // Локальное кодовое слово: ядро слушает PCM и ищет «Амадеус» своей моделью.
+  // Локальное кодовое слово: ядро слушает PCM и ищет «Amadeus» своей моделью.
   const localWake = useWakeSocket({ onWake: handleWake, onHeard: handleCommand });
 
   const { wakeActive, micStatus, wake } = useWakeWord({
@@ -201,7 +201,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
   const micText = useMemo(() => MIC_LABEL[micStatus] ?? MIC_LABEL.listening, [micStatus]);
 
   return (
-    <div className="mini-stage" aria-label="Свёрнутый режим Амадеуса">
+    <div className="mini-stage" aria-label="Свёрнутый режим Amadeus">
       <div className={`mini-caption ${state === "idle" ? "" : "mini-caption--active"}`}>
         <span className={`mini-caption__dot mini-caption__dot--${state}`} aria-hidden="true" />
         <span className="mini-caption__text" role="status" aria-label="Подпись состояния">
@@ -218,7 +218,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
           ))}
           {liveAnswer && (
             <div className="mini-subtitle mini-subtitle--live">
-              <b>Амадеус:</b> {liveAnswer}
+              <b>Amadeus:</b> {liveAnswer}
             </div>
           )}
         </div>
@@ -239,7 +239,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
             dim={state === "idle" && !wakeActive && !hintVisible}
             tipAlign="right"
             onClick={onRestore}
-            aria-label={`Амадеус: ${state}. Открыть окно`}
+            aria-label={`Amadeus: ${state}. Открыть окно`}
           />
         ) : (
           <MiniCore
@@ -250,7 +250,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
             dim={state === "idle" && !wakeActive && !hintVisible}
             tipAlign="right"
             onClick={onRestore}
-            aria-label={`Амадеус: ${state}. Открыть окно`}
+            aria-label={`Amadeus: ${state}. Открыть окно`}
           />
         )}
       </div>

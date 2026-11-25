@@ -11,14 +11,14 @@ import {
   workspaceApi,
 } from "../lib/api";
 import { t as translate, type Locale } from "../lib/i18n";
-import { setSoundEnabled, soundEnabled } from "../lib/sound";
+import { setSoundEnabled, setSoundVolume, soundEnabled, soundVolume } from "../lib/sound";
 import { loadStartSphere, saveStartSphere } from "../lib/preferences";
 import "./control.css";
 import "./settings.css";
 
 type Props = {
-  theme: "dark" | "light";
-  onTheme: (theme: "dark" | "light") => void;
+  theme: "dark" | "light" | "auto";
+  onTheme: (theme: "dark" | "light" | "auto") => void;
   onOpenCenter: () => void;
   onClose: () => void;
 };
@@ -69,6 +69,7 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
   });
   const [autostart, setAutostart] = useState(false);
   const [sound, setSound] = useState(soundEnabled);
+  const [volume, setVolume] = useState(() => Math.round(soundVolume() * 100));
   const [startSphere, setStartSphere] = useState(loadStartSphere);
   const [settingsQuery, setSettingsQuery] = useState("");
   const [settingsIndex, setSettingsIndex] = useState<Array<{ key: string; title: string; category: string }>>([]);
@@ -291,15 +292,16 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
               </label>
               <label>
                 Тема
-                <select value={theme} onChange={(event) => onTheme(event.target.value as "dark" | "light")}>
+                <select value={theme} onChange={(event) => onTheme(event.target.value as "dark" | "light" | "auto")}>
                   <option value="dark">Тёмная</option>
-                  <option value="light">Светлая</option>
+                  <option value="light">Светлая · Партитура</option>
+                  <option value="auto">Авто</option>
                 </select>
               </label>
               <label>
                 {translate(locale, "settings.accent")}
                 <select value={accent} onChange={(event) => changeAccent(event.target.value)}>
-                  {(["cyan", "amber", "violet", "green"] as const).map((value) => (
+                  {(["cyan", "brass", "green"] as const).map((value) => (
                     <option key={value} value={value}>
                       {translate(locale, `accent.${value}`)}
                     </option>
@@ -324,6 +326,21 @@ export function Settings({ theme, onTheme, onOpenCenter, onClose }: Props) {
                   onChange={(event) => {
                     setSound(event.target.checked);
                     setSoundEnabled(event.target.checked);
+                  }}
+                />
+              </label>
+              <label className="center-inline">
+                Громкость подписи <span aria-hidden="true">{volume}%</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volume}
+                  aria-label="Громкость звуковой подписи"
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    setVolume(next);
+                    setSoundVolume(next / 100);
                   }}
                 />
               </label>

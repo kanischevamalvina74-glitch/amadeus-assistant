@@ -67,12 +67,14 @@ test.describe("F04 текстовая беседа с контекстом", () 
   });
 
   test("F04-H5 подсказки и редактирование последнего сообщения", async ({ page }) => {
+    await page.route("**/api/messages.list*", (route) => route.fulfill({ json: [] }));
     await page.goto("/");
     await expect(page.getByText("Ядро в сети")).toBeVisible();
     const input = page.getByRole("textbox", { name: "Сообщение" });
     await page.getByRole("button", { name: "Что у меня сегодня?" }).click();
     await expect(input).toHaveValue("Что у меня сегодня?");
-    await input.fill("");
+    await input.press("Enter");
+    await expect(input).toHaveValue("");
     await input.press("ArrowUp");
     await expect(input).not.toHaveValue("");
     await input.press("Shift+Enter");
@@ -115,6 +117,7 @@ test.describe("F04 текстовая беседа с контекстом", () 
     const input = page.getByRole("textbox", { name: "Сообщение" });
     await input.fill("проверка ошибки");
     await input.press("Enter");
+    await page.locator(".hud-status-button").first().click();
     const reason = page.locator(".hud-error");
     await expect(reason).toContainText("Модель не скачана");
     await expect(reason.getByRole("button", { name: "Скачать" })).toBeVisible();
