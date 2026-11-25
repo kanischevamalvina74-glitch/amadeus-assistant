@@ -251,7 +251,7 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
             onClick={onRestore}
             aria-label={`Amadeus: ${state}. Открыть окно`}
           >
-            <ParticleSphere state={wakeActive && state === "idle" ? "listening" : state} size={176} level={level} />
+            <ParticleSphere state={wakeActive && state === "idle" ? "listening" : state} size={170} level={level} />
           </button>
         )}
       </div>

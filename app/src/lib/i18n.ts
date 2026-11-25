@@ -44,7 +44,7 @@ const MESSAGES: Messages = {
   "mini.ready": { ru: "Готов — скажите «Amadeus»", en: "Ready — say “Amadeus”" },
   "mini.listening": { ru: "Слушаю — говорите команду", en: "Listening — say a command" },
   "mini.ptt": { ru: "Говорите — отпустите пробел", en: "Speak — release Space" },
-  "mini.wake": { ru: "Скажите «Amadeus» — отвечу без кликов", en: "Say “Amadeus” — no clicks needed" },
+  "mini.wake": { ru: "Скажите «Amadeus»", en: "Say “Amadeus”" },
   "settings.title": { ru: "Настройки", en: "Settings" },
   "settings.general": { ru: "Общие", en: "General" },
   "settings.locale": { ru: "Язык интерфейса", en: "Interface language" },

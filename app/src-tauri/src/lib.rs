@@ -192,7 +192,7 @@ fn window_fullscreen(app: tauri::AppHandle, enabled: bool) {
 fn window_mini(app: tauri::AppHandle, enabled: bool) {
     let Some(window) = app.get_webview_window("main") else { return };
     if enabled {
-        let (w, h) = (280.0_f64, 320.0_f64);
+        let (w, h) = (320.0_f64, 250.0_f64);
         let _ = window.set_fullscreen(false);
         let _ = window.set_decorations(false);
         let _ = window.set_shadow(false);
