@@ -32,6 +32,12 @@ const config: Config = {
           dim: "var(--color-accent-dim)",
         },
         "on-accent": "var(--color-on-accent)",
+        brass: {
+          DEFAULT: "var(--color-brass)",
+          bright: "var(--color-brass-bright)",
+          dark: "var(--color-brass-dark)",
+        },
+        "on-danger": "var(--color-on-danger)",
         danger: {
           DEFAULT: "var(--color-danger)",
           strong: "var(--color-danger-strong)",
@@ -45,6 +51,7 @@ const config: Config = {
       },
       fontFamily: {
         display: "var(--font-display)",
+        serif: "var(--font-serif)",
         sans: "var(--font-sans)",
         mono: "var(--font-mono)",
       },

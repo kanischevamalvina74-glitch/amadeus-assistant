@@ -4,7 +4,8 @@ import { expect, test, type Page } from "@playwright/test";
 async function collapse(page: Page) {
   await page.goto("/");
   await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
-  await page.getByRole("button", { name: "Свернуть" }).click();
+  await page.getByRole("button", { name: "Другие действия" }).click();
+  await page.getByRole("menuitem", { name: "Свернуть" }).click();
   await expect(page.getByLabel("Свёрнутый режим Amadeus")).toBeVisible();
 }
 

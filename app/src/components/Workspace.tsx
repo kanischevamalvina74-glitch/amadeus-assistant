@@ -355,13 +355,24 @@ export function Workspace({
   const [focusMode, setFocusMode] = useState(false);
   const [sphereMode, setSphereMode] = useState(loadStartSphere);
   const [headMenuOpen, setHeadMenuOpen] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
+  const [voiceLevel, setVoiceLevel] = useState(0);
   const [pendingActions, setPendingActions] = useState<ActionItem[]>([]);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (state !== "error") setErrorOpen(false);
   }, [state]);
+
+  useEffect(() => {
+    const onLevel = (event: Event) => {
+      const value = (event as CustomEvent<number>).detail;
+      setVoiceLevel(typeof value === "number" ? value : 0);
+    };
+    window.addEventListener("amadeus.voice.level", onLevel);
+    return () => window.removeEventListener("amadeus.voice.level", onLevel);
+  }, []);
 
   useEffect(() => {
     const startedAt = Date.now();
@@ -389,6 +400,10 @@ export function Workspace({
         setTelemetryOpen((value) => !value);
       }
       if (event.key === "Escape" && focusMode) setFocusMode(false);
+      if (event.ctrlKey && event.key.toLowerCase() === "b") {
+        event.preventDefault();
+        setHistoryOpen((value) => !value);
+      }
       if (event.key === "F11") {
         event.preventDefault();
         setSphereMode((value) => {
@@ -545,39 +560,65 @@ export function Workspace({
 
   return (
     <div className="app" data-focus={focusMode ? "true" : undefined} data-sphere={sphereMode ? "true" : undefined}>
-      <div className="statusbar" role="banner">
-        <span className={`dot ${!backendOnline ? "dot--off" : model.hasModel ? "" : "dot--warn"}`} />
-        <strong>{!backendOnline ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}</strong>
-        <span className="sep">/</span>
-        <span className="status-storage">{backendOnline ? tr("status.storage") : tr("status.demo")}</span>
-        <span className="sep">/</span>
-        <span>{tr("status.russian")}</span>
-        <span className="grow" />
-        <button
-          type="button"
-          className="status-chip"
-          title="Телеметрия (Ctrl+.)"
-          aria-expanded={telemetryOpen}
-          onClick={() => setTelemetryOpen((value) => !value)}
+      <div className="app-header" role="banner">
+        <h1 className="name">Amadeus</h1>
+        <div
+          className={`status-orb status-orb--${state}`}
+          title={`Процессор ${metrics ? `${metrics.cpu}%` : "—"} · Память ${metrics ? `${metrics.memory.used_gb} ГБ` : "—"} · Сеанс ${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")} · ${OLLAMA_LABEL}`}
         >
-          {tr("status.cpu")} <strong>{metrics ? `${metrics.cpu}%` : "-"}</strong>
-        </button>
-        <span className="sep">·</span>
-        <span className="status-memory">
-          {tr("status.memory")} <strong>{metrics ? `${metrics.memory.used_gb} ГБ` : "—"}</strong>
+          <MiniCore state={state} size={40} level={voiceLevel} />
+          <strong className="app-status-text">
+            {!backendOnline ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}
+          </strong>
+          <span className="sr-only" role="status" aria-label="Состояние ядра">
+            ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
+          </span>
+          <span className="sr-only status-storage">{backendOnline ? tr("status.storage") : tr("status.demo")}</span>
+        </div>
+        <span className="grow" />
+        <span className="model model--chip" title={OLLAMA_MODEL}>
+          {OLLAMA_LABEL}
         </span>
-        <span className="sep">·</span>
-        <span className="amber status-temp">
-          {tr("status.temp")} <strong>{metrics?.temperature_c != null ? `${metrics.temperature_c} °C` : "—"}</strong>
-        </span>
-        <button className="theme-toggle" onClick={onToggleTheme} title="Переключить тему">
-          {theme === "dark" ? tr("theme.toggle") : tr("theme.toggleDark")}
-        </button>
+        <div className="head-actions">
+          <button className="head-icon" onClick={toggleSphere} title="Сфера" aria-label="Сфера">
+            <Icon name="core" />
+          </button>
+          <button className="head-icon" onClick={onOpenWorkshop} title="Мастерская" aria-label="Мастерская">
+            <Icon name="plugins" />
+          </button>
+          <button
+            className="head-more"
+            aria-label="Другие действия"
+            aria-expanded={headMenuOpen}
+            onClick={() => setHeadMenuOpen((value) => !value)}
+          >
+            ⋯
+          </button>
+          {headMenuOpen && (
+            <div className="head-menu" role="menu">
+              <button role="menuitem" onClick={() => { toggleSphere(); setHeadMenuOpen(false); }}>
+                {sphereMode ? "Чат" : "Сфера"}
+              </button>
+              <button role="menuitem" onClick={() => { setFocusMode((value) => !value); setHeadMenuOpen(false); }}>
+                {focusMode ? "Выйти из фокуса" : "Фокус"}
+              </button>
+              <button role="menuitem" onClick={() => { onOpenWorkshop(); setHeadMenuOpen(false); }}>
+                Мастерская
+              </button>
+              <button role="menuitem" onClick={() => { onCollapse(); setHeadMenuOpen(false); }}>
+                Свернуть
+              </button>
+              <button role="menuitem" onClick={() => { onToggleTheme(); setHeadMenuOpen(false); }}>
+                {theme === "dark" ? tr("theme.toggle") : tr("theme.toggleDark")}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="shell" data-panel={telemetryOpen ? "open" : "closed"}>
         <nav className="rail" aria-label="Основное">
-          <button aria-current="page" title="Amadeus">
+          <button aria-current="page" title="Amadeus" onClick={() => setPanel("none")}>
             <Icon name="core" />
           </button>
           <button title={tr("nav.history")} aria-expanded={historyOpen} onClick={() => setHistoryOpen((value) => !value)}>
@@ -588,9 +629,6 @@ export function Workspace({
           </button>
           <button title={tr("nav.terminal")} onClick={() => setPanel((current) => (current === "terminal" ? "none" : "terminal"))}>
             <Icon name="terminal" />
-          </button>
-          <button title="Мастерская: команды, Telegram, аватар" onClick={onOpenWorkshop}>
-            <Icon name="plugins" />
           </button>
           <span className="spacer" />
           <button title={tr("nav.center")} onClick={onOpenCenter}>
@@ -639,55 +677,6 @@ export function Workspace({
         )}
 
         <main className="stage" data-hud={messages.length > 0 ? "compact" : "full"}>
-          <div className="stage-head">
-            <h1 className="name">Amadeus</h1>
-            <span className={`model ${model.hasModel ? "" : "model--muted"}`} title={OLLAMA_MODEL}>
-              {OLLAMA_LABEL}
-            </span>
-            <span className="grow" />
-            <span className="hud-label">
-              {String(Math.floor(elapsed / 3600)).padStart(2, "0")}:{String(Math.floor((elapsed % 3600) / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}
-            </span>
-            <div className="head-actions">
-              <button className="collapse-btn" onClick={toggleSphere} title="Сфера: только ядро без чата (запоминается как режим запуска)">
-                {sphereMode ? "Чат" : "Сфера"}
-              </button>
-              <button className="collapse-btn" onClick={() => setFocusMode((value) => !value)} title="Фокус: только сфера, чат и ввод">
-                {focusMode ? "Выйти" : "Фокус"}
-              </button>
-              <button className="collapse-btn" onClick={onOpenWorkshop} title="Команды, Telegram, аватар">
-                Мастерская
-              </button>
-              <button className="collapse-btn" onClick={onCollapse} title="Свернуть в ядро — дальше голосом">
-                Свернуть
-              </button>
-              <button
-                className="head-more"
-                aria-label="Другие действия"
-                aria-expanded={headMenuOpen}
-                onClick={() => setHeadMenuOpen((value) => !value)}
-              >
-                ⋯
-              </button>
-              {headMenuOpen && (
-                <div className="head-menu" role="menu">
-                  <button role="menuitem" onClick={() => { toggleSphere(); setHeadMenuOpen(false); }}>
-                    {sphereMode ? "Чат" : "Сфера"}
-                  </button>
-                  <button role="menuitem" onClick={() => { setFocusMode((value) => !value); setHeadMenuOpen(false); }}>
-                    {focusMode ? "Выйти из фокуса" : "Фокус"}
-                  </button>
-                  <button role="menuitem" onClick={() => { onOpenWorkshop(); setHeadMenuOpen(false); }}>
-                    Мастерская
-                  </button>
-                  <button role="menuitem" onClick={() => { onCollapse(); setHeadMenuOpen(false); }}>
-                    Свернуть
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
           <div className="hud-scene" data-state={state}>
             <div className="scan" />
             <div className="hud-meta left">
@@ -729,7 +718,7 @@ export function Workspace({
               </div>
             </div>
 
-            <HUDCore state={state} size={sphereMode ? 380 : 248} />
+            <HUDCore state={state} size={sphereMode ? 380 : 248} level={voiceLevel} />
 
             {!sphereMode && (
               <div className="hud-compact">
@@ -958,28 +947,35 @@ export function Workspace({
                 }}
                 style={{ resize: "none", maxHeight: 160 }}
               />
+              <div className="attach-menu">
+                <button
+                  className="icon-btn"
+                  title="Добавить"
+                  aria-label="Добавить"
+                  aria-expanded={attachMenuOpen}
+                  type="button"
+                  onClick={() => setAttachMenuOpen((value) => !value)}
+                >
+                  +
+                </button>
+                {attachMenuOpen && (
+                  <div className="attach-popover" role="menu">
+                    <button type="button" role="menuitem" onClick={() => { fileRef.current?.click(); setAttachMenuOpen(false); }}>
+                      Файл
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { capture(); setAttachMenuOpen(false); }}>
+                      Снимок экрана
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => { setPickingRegion(true); setAttachMenuOpen(false); }}>
+                      Область экрана
+                    </button>
+                  </div>
+                )}
+              </div>
               <button className="icon-btn" title={tr("voice.microphone")} type="button" onClick={onTalk} aria-label={tr("voice.microphone")}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <rect x="9" y="3" width="6" height="11" rx="3" />
                   <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-                </svg>
-              </button>
-              <button className="icon-btn" title="Вложение" type="button" onClick={() => fileRef.current?.click()}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7L14 5.5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L16 7.5" />
-                </svg>
-              </button>
-              <button className="icon-btn" title="Снимок экрана" type="button" onClick={capture}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="3" y="6" width="18" height="13" rx="2" />
-                  <circle cx="12" cy="12.5" r="3" />
-                  <path d="M8 6l1.5-2h5L16 6" />
-                </svg>
-              </button>
-              <button className="icon-btn" title="Выделить область" type="button" onClick={() => setPickingRegion(true)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3" />
-                  <rect x="8" y="8" width="8" height="8" strokeDasharray="2 2" />
                 </svg>
               </button>
               {(state === "thinking" || state === "speaking") && (
@@ -1002,12 +998,6 @@ export function Workspace({
                 ))}
               </div>
             )}
-            <div className="hints">
-              <span>{tr("composer.hintEnter")}</span>
-              <span>{tr("composer.hintCommands")}</span>
-              <span>{tr("composer.hintMic")}</span>
-              <span style={{ marginLeft: "auto" }}>{tr("composer.local")}</span>
-            </div>
           </div>
         </main>
 

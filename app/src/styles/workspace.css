@@ -1054,3 +1054,106 @@ button.hud-compact__status:hover { text-decoration: underline; }
   .statusbar .status-temp,
   .statusbar .sep { display: none; }
 }
+
+
+/* ---------- плотный чат: одна шапка, больше места диалогу ---------- */
+.app-header {
+  height: 40px; flex: 0 0 40px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 12px; position: relative; z-index: 5;
+  border-bottom: 1px solid var(--color-border);
+}
+.app-header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: var(--color-brass-dark); opacity: .7; pointer-events: none;
+}
+.app-header .name { font-size: 20px; letter-spacing: .01em; }
+.status-orb { display: flex; align-items: center; gap: 8px; cursor: help; }
+.status-orb .mini { width: 20px !important; height: 20px !important; }
+.app-status-text {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--color-text-muted);
+}
+.status-orb--error .app-status-text { color: var(--color-danger); }
+.status-orb--thinking .app-status-text,
+.status-orb--speaking .app-status-text { color: var(--color-brass); }
+.model--chip {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--color-text-faint); opacity: .7;
+}
+.head-icon {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-muted); cursor: pointer;
+}
+.head-icon:hover { color: var(--color-accent); border-color: var(--color-border); }
+.head-icon svg { width: 15px; height: 15px; }
+.app-header .head-more { display: grid; place-items: center; }
+
+.shell { grid-template-columns: 44px 220px minmax(0, 1fr) var(--layout-panel); }
+.shell[data-panel="closed"] { grid-template-columns: 44px 220px 1fr; }
+.rail { width: 44px; padding: 6px 0; }
+.rail button { width: 34px; height: 34px; }
+.rail svg { width: 16px; height: 16px; }
+.sidebar-head { padding: 8px 12px 6px; }
+.sidebar-head h2 { font-size: 12px; }
+.thread { padding: 5px 8px; min-height: 32px; }
+.thread .snippet { font-size: 10.5px; }
+.search { height: 30px; margin: 8px 10px; font-size: 11px; }
+
+.stage[data-hud="compact"] .hud-scene { display: none; }
+.app[data-sphere="true"] .stage .hud-scene { display: flex !important; }
+.stage[data-hud="full"] .hud-scene {
+  border: 0; box-shadow: none; background-image: none; background: transparent;
+  min-height: 240px;
+}
+
+.chat {
+  gap: 16px; padding: 8px 20px 12px; max-width: 760px;
+}
+.chat .msg .body { padding: 6px 0; }
+.chat .msg.user .body {
+  width: fit-content; max-width: 82%;
+  padding: 6px 10px; border: 0; border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+.chat .msg.assistant .body {
+  width: 100%; max-width: 100%;
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid var(--color-brass);
+}
+.chat .msg .who { font-family: var(--font-sans); font-size: 10px; text-transform: none; letter-spacing: 0; }
+
+.composer-wrap { padding: 0 20px 12px; max-width: 760px; }
+.composer { height: 44px; padding: 4px 8px; gap: 8px; }
+.composer .input { font-size: 13.5px; padding: 0; }
+.composer .icon-btn { width: 28px; height: 28px; font-size: 15px; }
+.composer .send { width: 30px; height: 30px; }
+.hints { display: none; }
+.attach-menu { position: relative; }
+.attach-popover {
+  position: absolute; left: 0; bottom: 36px; z-index: 20;
+  display: grid; min-width: 170px; padding: 4px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: var(--color-surface); box-shadow: var(--shadow-pop);
+}
+.attach-popover button {
+  border: 0; background: none; color: var(--color-text-muted);
+  text-align: left; padding: 7px 9px; font-size: 12px; cursor: pointer;
+  border-radius: var(--radius-xs);
+}
+.attach-popover button:hover { background: var(--color-surface-2); color: var(--color-text); }
+
+/* Моно-капс остаётся только в статусе и чипе модели. */
+.group-label, .sidebar-head h2, .thread .time, .hud-label,
+.panel-head h2, .model-card__head, .center-head h1 {
+  font-family: var(--font-sans); font-size: 12px;
+  letter-spacing: 0; text-transform: none;
+}
+.center-head h1 { font-family: var(--font-serif); font-style: italic; font-size: 22px; }
+
+@media (max-width: 960px) {
+  .shell, .shell[data-panel="closed"] { grid-template-columns: 44px minmax(0, 1fr) !important; }
+  .app-header { gap: 8px; padding: 0 8px; }
+  .model--chip { display: none; }
+}

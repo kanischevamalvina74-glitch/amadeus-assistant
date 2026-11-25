@@ -397,7 +397,8 @@ const HUD_LABEL: Record<HudState, string> = {
  * Ядро-реактор: контурная сфера, тики, дуги. Состояние меняет скорость и цвет,
  * но не размер — чтобы интерфейс не «прыгал».
  */
-export function HUDCore({ state = "idle", size = 248 }: { state?: HudState; size?: number }) {
+export function HUDCore({ state = "idle", size = 248, level = 0 }: { state?: HudState; size?: number; level?: number }) {
+  const coreId = useId();
   const speed = state === "thinking" ? "1.6s" : state === "speaking" ? "3.2s" : state === "listening" ? "9s" : "46s";
   const tone =
     state === "error" ? "var(--color-danger)"
@@ -416,6 +417,7 @@ export function HUDCore({ state = "idle", size = 248 }: { state?: HudState; size
           height: size,
           "--hud-spin": speed,
           "--hud-tone": tone,
+          "--hud-level": level,
         } as CSSProperties
       }
       role="img"
@@ -423,12 +425,20 @@ export function HUDCore({ state = "idle", size = 248 }: { state?: HudState; size
     >
       <svg viewBox="0 0 240 240" className="hud__svg" aria-hidden="true">
         <defs>
-          <radialGradient id="hud-core-grad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--reactor-core)" stopOpacity=".95" />
-            <stop offset="38%" stopColor="var(--reactor-mid)" stopOpacity=".5" />
-            <stop offset="72%" stopColor="var(--reactor-rim)" stopOpacity=".16" />
+          <radialGradient id={`${coreId}-volume`} cx="42%" cy="36%" r="66%">
+            <stop offset="0%" stopColor="var(--reactor-core)" stopOpacity=".98" />
+            <stop offset="26%" stopColor="var(--reactor-mid)" stopOpacity=".68" />
+            <stop offset="62%" stopColor="var(--reactor-rim)" stopOpacity=".24" />
             <stop offset="100%" stopColor="var(--reactor-rim)" stopOpacity="0" />
           </radialGradient>
+          <linearGradient id={`${coreId}-sheen`} x1="0" y1="0" x2=".8" y2="1">
+            <stop offset="0%" stopColor="var(--reactor-core)" stopOpacity=".65" />
+            <stop offset="48%" stopColor="var(--reactor-mid)" stopOpacity=".12" />
+            <stop offset="100%" stopColor="var(--reactor-rim)" stopOpacity="0" />
+          </linearGradient>
+          <filter id={`${coreId}-soft`} x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="7" />
+          </filter>
         </defs>
 
         <circle cx="120" cy="120" r="112" fill="none" stroke="var(--color-hud-ring)" strokeOpacity=".22" />
@@ -461,7 +471,13 @@ export function HUDCore({ state = "idle", size = 248 }: { state?: HudState; size
           <ellipse cx="120" cy="120" rx="16" ry="58" fill="none" stroke="var(--reactor-line)" strokeOpacity=".2" />
         </g>
 
-        <circle className="hud__glow" cx="120" cy="120" r="58" fill="url(#hud-core-grad)" opacity=".55" />
+        <circle cx="120" cy="120" r="60" fill="var(--color-bg)" opacity=".55" />
+        <circle className="hud__glow" cx="120" cy="120" r="58" fill={`url(#${coreId}-volume)`} opacity=".92" />
+        <ellipse cx="108" cy="100" rx="34" ry="22" fill="var(--reactor-core)" opacity=".38" filter={`url(#${coreId}-soft)`} />
+        <circle cx="120" cy="120" r="58" fill={`url(#${coreId}-sheen)`} opacity=".75" />
+        <path d="M84 96a46 46 0 0 1 48-22" fill="none" stroke="var(--reactor-core)" strokeOpacity=".55" strokeWidth="1.4" strokeLinecap="round" />
+        <path d="M150 150a46 46 0 0 1-40 18" fill="none" stroke="var(--color-bg)" strokeOpacity=".35" strokeWidth="2" strokeLinecap="round" />
+        <circle className="hud__voice-ring" cx="120" cy="120" r="74" fill="none" stroke="var(--reactor-line)" strokeWidth="1.4" />
         <circle className="hud__pulse" cx="120" cy="120" r="62" fill="none" stroke="var(--color-accent-strong)" strokeOpacity=".35" />
         <circle cx="120" cy="120" r="6" fill="var(--reactor-core)" />
       </svg>
@@ -514,11 +530,16 @@ export function MiniCore({
     >
       <svg viewBox="0 0 120 120" className="mini__svg" aria-hidden="true">
         <defs>
-          <radialGradient id={`${gradId}-core`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--mini-tone)" stopOpacity=".9" />
-            <stop offset="55%" stopColor="var(--mini-tone)" stopOpacity=".35" />
+          <radialGradient id={`${gradId}-core`} cx="42%" cy="36%" r="66%">
+            <stop offset="0%" stopColor="var(--reactor-core)" stopOpacity=".95" />
+            <stop offset="34%" stopColor="var(--mini-tone)" stopOpacity=".62" />
+            <stop offset="72%" stopColor="var(--mini-tone)" stopOpacity=".18" />
             <stop offset="100%" stopColor="var(--mini-tone)" stopOpacity="0" />
           </radialGradient>
+          <linearGradient id={`${gradId}-sheen`} x1="0" y1="0" x2=".8" y2="1">
+            <stop offset="0%" stopColor="var(--reactor-core)" stopOpacity=".6" />
+            <stop offset="100%" stopColor="var(--mini-tone)" stopOpacity="0" />
+          </linearGradient>
         </defs>
 
         <g className="mini__spin mini__spin--slow" stroke="var(--color-hud-ring)" strokeWidth="1" opacity=".5">
@@ -537,8 +558,11 @@ export function MiniCore({
         </g>
 
         <circle className="mini__halo" cx="60" cy="60" r="27" fill={`url(#${gradId}-core)`} />
+        <circle cx="60" cy="60" r="20" fill="var(--color-bg)" opacity=".35" />
         <circle className="mini__core" cx="60" cy="60" r="17" fill={`url(#${gradId}-core)`} />
-        <circle cx="60" cy="60" r="3.4" fill="var(--mini-tone)" />
+        <circle cx="60" cy="60" r="17" fill={`url(#${gradId}-sheen)`} opacity=".7" />
+        <ellipse cx="53" cy="52" rx="9" ry="6" fill="var(--reactor-core)" opacity=".45" />
+        <circle cx="60" cy="60" r="3.4" fill="var(--reactor-core)" />
 
         <g className="mini__muted" stroke="var(--color-text-faint)" strokeWidth="2" strokeLinecap="round">
           <line x1="43" y1="77" x2="77" y2="43" />
