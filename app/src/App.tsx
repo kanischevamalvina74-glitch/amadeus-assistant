@@ -260,8 +260,14 @@ export default function App() {
       }
     };
     void init();
+    const ping = window.setInterval(() => {
+      void api.health()
+        .then(() => setBackendOnline(true))
+        .catch(() => setBackendOnline(false));
+    }, 3000);
     return () => {
       cancelled = true;
+      window.clearInterval(ping);
     };
   }, [syncThreads, setupTick]);
 
