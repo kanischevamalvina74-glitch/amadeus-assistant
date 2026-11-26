@@ -123,6 +123,15 @@ export default function App() {
   });
   useEffect(() => () => voice.stop(), [voice.stop]);
 
+  // Вышли из свёрнутого окошка: гасим голосовую сессию и микрофон,
+  // а события больше не отдаём обработчику закрытого окошка.
+  useEffect(() => {
+    if (view !== "mini") {
+      voice.stop();
+      overlayVoiceHandler.current = () => undefined;
+    }
+  }, [view, voice.stop]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);

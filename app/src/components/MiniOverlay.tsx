@@ -101,6 +101,14 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     }
   };
   voiceHandler.current = handleVoiceEvent;
+  // Обработчик ставится и снимается эффектом, чтобы StrictMode и размонтирование
+  // не оставляли в App ссылку на закрытое окошко.
+  useEffect(() => {
+    voiceHandler.current = handleVoiceEvent;
+    return () => {
+      voiceHandler.current = () => undefined;
+    };
+  });
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
 

@@ -84,6 +84,9 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
         if let Some(parent) = log_path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
+        // Флаг «ядро завершилось»: если процесс упал на старте, не ждём 2 минуты.
+        let exited = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let exited_flag = exited.clone();
         tauri::async_runtime::spawn(async move {
             use tauri_plugin_shell::process::CommandEvent;
             while let Some(event) = rx.recv().await {
@@ -91,7 +94,10 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
                     CommandEvent::Stdout(bytes) => format!("[out] {}", String::from_utf8_lossy(&bytes)),
                     CommandEvent::Stderr(bytes) => format!("[err] {}", String::from_utf8_lossy(&bytes)),
                     CommandEvent::Error(message) => format!("[error] {message}"),
-                    CommandEvent::Terminated(_) => break,
+                    CommandEvent::Terminated(_) => {
+                        exited_flag.store(true, std::sync::atomic::Ordering::SeqCst);
+                        break;
+                    }
                     _ => continue,
                 };
                 if let Ok(mut file) = std::fs::OpenOptions::new()
@@ -114,6 +120,9 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
             if backend_port_open() {
                 ready = true;
                 break;
+            }
+            if exited.load(std::sync::atomic::Ordering::SeqCst) {
+                return Err("ядро завершилось при запуске, подробности в logs/core.log".into());
             }
             std::thread::sleep(Duration::from_millis(200));
         }
