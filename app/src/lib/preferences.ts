@@ -1,11 +1,13 @@
-export type AvatarMode = "core" | "character";
+/** «core» — живой логотип (ядро и орбиты), «sphere» — сфера из точек. */
+export type AvatarMode = "core" | "sphere";
 
 const AVATAR_KEY = "amadeus.avatar";
 const START_SPHERE_KEY = "amadeus.startSphere";
 
 export function loadAvatar(): AvatarMode {
   try {
-    return localStorage.getItem(AVATAR_KEY) === "character" ? "character" : "core";
+    // Старое значение «character» (персонаж убран) превращается в «core».
+    return localStorage.getItem(AVATAR_KEY) === "sphere" ? "sphere" : "core";
   } catch {
     return "core";
   }

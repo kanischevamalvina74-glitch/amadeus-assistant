@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
-import { MiniCore, type HudState } from "./primitives";
-import { CharacterAvatar } from "./CharacterAvatar";
+import type { HudState } from "./primitives";
+import { CoreMark } from "./CoreMark";
+import { ParticleSphere } from "./ParticleSphere";
 import type { AvatarMode } from "../lib/preferences";
 import { useLocale } from "../lib/i18n";
 import { useWakeWord } from "../hooks/useWakeWord";
 import { useWakeSocket } from "../hooks/useWakeSocket";
 import type { VoiceSocket, VoiceSocketEvent } from "../hooks/useVoiceSocket";
 import { playCue } from "../lib/sound";
+import { shell } from "../lib/api";
 import "./mini.css";
 
 type Props = {
@@ -101,6 +103,14 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
     }
   };
   voiceHandler.current = handleVoiceEvent;
+  // Обработчик ставится и снимается эффектом, чтобы StrictMode и размонтирование
+  // не оставляли в App ссылку на закрытое окошко.
+  useEffect(() => {
+    voiceHandler.current = handleVoiceEvent;
+    return () => {
+      voiceHandler.current = () => undefined;
+    };
+  });
   const voiceRef = useRef(voice);
   voiceRef.current = voice;
 
@@ -204,16 +214,65 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
 
   const micText = useMemo(() => MIC_LABEL[micStatus] ?? MIC_LABEL.listening, [micStatus]);
 
+  // В оболочке Tauri окошко маленькое и прозрачное: субтитры и подсказки
+  // в него не помещаются, они остаются только в браузерной версии.
+  const inShell = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+  const statusText = tr(`mini.status.${state}`);
+
   return (
     <div className="mini-stage" aria-label="Свёрнутый режим Amadeus">
-      <div className={`mini-caption ${state === "idle" ? "" : "mini-caption--active"}`}>
-        <span className={`mini-caption__dot mini-caption__dot--${state}`} aria-hidden="true" />
-        <span className="mini-caption__text" role="status" aria-label="Подпись состояния">
-          {caption}
-        </span>
-      </div>
+      {/* Tauri 2 тащит окно только за элемент с data-tauri-drag-region, а не за его детей,
+          поэтому атрибут стоит на фоне, полосе и подписях, но не на кнопках и аватаре. */}
+      <section className={`mini-card mini-card--${state}`} data-tauri-drag-region>
+        <div className="mini-card__bar" data-tauri-drag-region>
+          {inShell && (
+            // На панель задач можно убрать только окно приложения; в браузере кнопки нет.
+            <button
+              type="button"
+              className="mini-card__btn"
+              title={tr("mini.minimize")}
+              aria-label={tr("mini.minimize")}
+              onClick={() => void shell.minimizeMini()}
+            >
+              <span aria-hidden="true">—</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="mini-card__btn"
+            title={tr("mini.expand")}
+            aria-label={tr("mini.expand")}
+            onClick={onRestore}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
 
-      {(subtitles.length > 0 || liveAnswer) && (
+        <button
+          type="button"
+          className="mini-card__avatar"
+          onClick={onRestore}
+          aria-label={`Amadeus: ${statusText}. Открыть окно`}
+          data-wake={wakeActive}
+        >
+          {avatar === "sphere" ? (
+            <ParticleSphere state={state} level={level} size={184} />
+          ) : (
+            <CoreMark state={state} level={level} size={150} />
+          )}
+        </button>
+
+        <div className={`mini-card__status mini-card__status--${state}`} data-tauri-drag-region>
+          <span className="mini-card__dot" aria-hidden="true" />
+          <span data-tauri-drag-region>{statusText}</span>
+        </div>
+        <p className="mini-card__caption" role="status" aria-label="Подпись состояния" data-tauri-drag-region>
+          {caption}
+        </p>
+        <span className="mini-card__hair" aria-hidden="true" />
+      </section>
+
+      {!inShell && (subtitles.length > 0 || liveAnswer) && (
         <div className="mini-subtitles" aria-live="polite" aria-label="Субтитры голосового режима">
           {subtitles.map((line, index) => (
             <div className="mini-subtitle" key={`${line.speaker}-${index}`}>
@@ -228,36 +287,11 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
         </div>
       )}
 
-      {hintVisible && (
+      {!inShell && hintVisible && (
         <div className="mini-hint">
           <span className="mini-hint__key">Space</span> — говорить, не отпуская · <span className="mini-hint__key">W</span> — показать сценарий без микрофона
         </div>
       )}
-
-      <div className="mini-orb">
-        {avatar === "character" ? (
-          <CharacterAvatar
-            state={state}
-            size={72}
-            wake={wakeActive}
-            dim={state === "idle" && !wakeActive && !hintVisible}
-            tipAlign="right"
-            onClick={onRestore}
-            aria-label={`Amadeus: ${state}. Открыть окно`}
-          />
-        ) : (
-          <MiniCore
-            state={state}
-            size={64}
-            wake={wakeActive}
-            level={level}
-            dim={state === "idle" && !wakeActive && !hintVisible}
-            tipAlign="right"
-            onClick={onRestore}
-            aria-label={`Amadeus: ${state}. Открыть окно`}
-          />
-        )}
-      </div>
 
       <div className="mini-mic" aria-live="polite">
         <span className={`mini-mic__dot mini-mic__dot--${micStatus}`} aria-hidden="true" />

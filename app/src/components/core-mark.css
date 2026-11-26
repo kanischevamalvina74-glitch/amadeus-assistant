@@ -1,0 +1,66 @@
+.core-mark {
+  display: block;
+  overflow: visible;
+  color: var(--color-accent);
+}
+.core-mark__orbit,
+.core-mark__core,
+.core-mark__glow {
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+}
+.core-mark__orbit ellipse {
+  fill: none;
+  stroke-width: 1.5;
+  transition: stroke-width .3s ease, opacity .3s ease;
+}
+.core-mark__orbit--a ellipse { stroke: var(--color-accent); }
+.core-mark__orbit--b ellipse { stroke: var(--color-brass); }
+.core-mark__core {
+  fill: #EAFDFF;
+  transition: transform .12s ease-out, fill .3s ease;
+}
+.core-mark__glow { opacity: .5; transition: opacity .3s ease; }
+
+/* Ждёт: орбиты приглушены и чуть покачиваются. */
+.core-mark--idle .core-mark__orbit ellipse,
+.core-mark--muted .core-mark__orbit ellipse { opacity: .55; }
+.core-mark--idle .core-mark__orbit--a,
+.core-mark--muted .core-mark__orbit--a { animation: core-sway 7s ease-in-out infinite; }
+.core-mark--idle .core-mark__orbit--b,
+.core-mark--muted .core-mark__orbit--b { animation: core-sway 7s ease-in-out infinite reverse; }
+.core-mark--idle .core-mark__glow { opacity: .2; }
+
+/* Слушает: бирюзовая орбита ярче, ядро дышит от голоса. */
+.core-mark--listening .core-mark__orbit--a ellipse { stroke-width: 1.9; }
+.core-mark--listening .core-mark__orbit--a { animation: core-sway 3.2s ease-in-out infinite; filter: drop-shadow(0 0 1.2px var(--color-accent)); }
+.core-mark--listening .core-mark__orbit--b { animation: core-sway 3.2s ease-in-out infinite reverse; }
+.core-mark--listening .core-mark__glow { opacity: .8; }
+
+/* Думает: орбиты вращаются навстречу друг другу. */
+.core-mark--thinking { color: var(--color-brass); }
+.core-mark--thinking .core-mark__orbit--a { animation: core-spin 2.4s linear infinite; }
+.core-mark--thinking .core-mark__orbit--b { animation: core-spin 2.4s linear infinite reverse; }
+
+/* Говорит: латунная орбита пульсирует в такт речи. */
+.core-mark--speaking { color: var(--color-brass-bright); }
+.core-mark--speaking .core-mark__orbit--b { animation: core-pulse .9s ease-in-out infinite; filter: drop-shadow(0 0 1.2px var(--color-brass)); }
+.core-mark--speaking .core-mark__orbit--a { animation: core-sway 5s ease-in-out infinite; }
+.core-mark--speaking .core-mark__glow { opacity: .8; }
+
+/* Ошибка: ядро красное, орбиты стоят. */
+.core-mark--error { color: var(--color-danger); }
+.core-mark--error .core-mark__core { fill: var(--color-danger); }
+.core-mark--error .core-mark__orbit ellipse { opacity: .45; }
+
+@keyframes core-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+@keyframes core-spin { to { transform: rotate(360deg); } }
+@keyframes core-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .core-mark__orbit { animation: none !important; }
+  .core-mark__core { transition: none; }
+}

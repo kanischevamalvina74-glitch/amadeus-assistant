@@ -123,6 +123,42 @@ export default function App() {
   });
   useEffect(() => () => voice.stop(), [voice.stop]);
 
+  // Переход в свёрнутый режим и обратно. На выходе из окошка гасим голосовую
+  // сессию и микрофон, а события больше не отдаём обработчику закрытого окошка.
+  // Окно меняем только на переходах, чтобы не сбивать размер при старте.
+  const prevView = useRef(view);
+  // Перестройки окна идут строго по очереди: быстрое «свернула-развернула»
+  // не перемешивает вызовы, а устаревший переход пропускается.
+  const windowQueue = useRef<Promise<void>>(Promise.resolve());
+  const wantMini = useRef(false);
+  const queueWindowMode = useCallback((enabled: boolean) => {
+    wantMini.current = enabled;
+    windowQueue.current = windowQueue.current.then(async () => {
+      if (wantMini.current !== enabled) return;
+      const ok = await shell.setMiniWindow(enabled);
+      if (!ok && enabled && wantMini.current) {
+        // Окошко не получилось: возвращаем обычное окно и большой вид.
+        wantMini.current = false;
+        await shell.setMiniWindow(false);
+        setView("workspace");
+      }
+    });
+  }, []);
+  useEffect(() => {
+    const root = document.documentElement;
+    if ("__TAURI_INTERNALS__" in window) root.dataset.shell = "tauri";
+    root.dataset.view = view;
+    const was = prevView.current;
+    prevView.current = view;
+    if (view === "mini" && was !== "mini") {
+      queueWindowMode(true);
+    } else if (view !== "mini" && was === "mini") {
+      voice.stop();
+      overlayVoiceHandler.current = () => undefined;
+      queueWindowMode(false);
+    }
+  }, [view, voice.stop]);
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);

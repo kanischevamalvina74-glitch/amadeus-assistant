@@ -7,8 +7,8 @@ import {
   type CommandAction,
 } from "../lib/commands";
 import { getMe, getUpdates, looksLikeToken, sendMessage, type TelegramBot } from "../lib/telegram";
-import { MiniCore } from "./primitives";
-import { CharacterAvatar } from "./CharacterAvatar";
+import { CoreMark } from "./CoreMark";
+import { ParticleSphere } from "./ParticleSphere";
 import type { AvatarMode } from "../lib/preferences";
 import "./workshop.css";
 
@@ -592,7 +592,7 @@ function AvatarTab({ avatar, onAvatar }: { avatar: AvatarMode; onAvatar: (mode: 
         <div>
           <span className="hud-label">внешность</span>
           <h1>Аватар</h1>
-          <p>Что показывать в свёрнутом режиме. Состояния и активация словом работают одинаково.</p>
+          <p>Что показывать в свёрнутом окошке. Состояния и кодовое слово работают одинаково.</p>
         </div>
       </header>
 
@@ -611,36 +611,35 @@ function AvatarTab({ avatar, onAvatar }: { avatar: AvatarMode; onAvatar: (mode: 
           aria-pressed={avatar === "core"}
         >
           <div className="avatar-option__preview">
-            <MiniCore state="listening" size={88} tabIndex={-1} />
+            <CoreMark state="listening" size={88} />
           </div>
           <strong>Ядро</strong>
-          <span>Абстрактное ядро с индикаторами состояния — спокойный вариант, который меньше отвлекает.</span>
+          <span>Наш логотип: ядро и две орбиты. Думает — орбиты вращаются, говорит — латунная пульсирует, ядро дышит от голоса.</span>
         </div>
 
         <div
           role="button"
           tabIndex={0}
-          className={`avatar-option ${avatar === "character" ? "avatar-option--active" : ""}`}
-          onClick={() => onAvatar("character")}
+          className={`avatar-option ${avatar === "sphere" ? "avatar-option--active" : ""}`}
+          onClick={() => onAvatar("sphere")}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              onAvatar("character");
+              onAvatar("sphere");
             }
           }}
-          aria-pressed={avatar === "character"}
+          aria-pressed={avatar === "sphere"}
         >
           <div className="avatar-option__preview">
-            <CharacterAvatar state="listening" size={88} tabIndex={-1} />
+            <ParticleSphere state="listening" size={88} />
           </div>
-          <strong>Аватар</strong>
-          <span>Оригинальный персонаж-андроид: глаза, антенна и рот показывают состояние.</span>
+          <strong>Сфера</strong>
+          <span>Облако светящихся точек: вращается, дышит от голоса и меняет цвет по состоянию.</span>
         </div>
       </div>
 
       <p className="w-note">
-        Аватар нарисован с нуля и не использует чужие 3D-модели. Позже сюда можно добавить загрузку
-        собственной модели.
+        Оба варианта нарисованы с нуля. Позже сюда можно добавить загрузку собственной модели.
       </p>
     </div>
   );
