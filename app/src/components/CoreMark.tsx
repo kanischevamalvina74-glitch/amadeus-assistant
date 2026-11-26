@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { HudState } from "./primitives";
 import "./core-mark.css";
 
@@ -33,6 +33,8 @@ function useReducedMotion(): boolean {
 
 export function CoreMark({ state = "idle", size = 150, level = 0, className = "" }: Props) {
   const reduceMotion = useReducedMotion();
+  // Ядер на экране бывает несколько (шапка, компактный вид): у каждого свой градиент.
+  const glowId = `core-mark-glow-${useId().replace(/:/g, "")}`;
   const voice = reduceMotion ? 0 : Math.max(0, Math.min(1, level));
   const coreScale = 1 + voice * 0.7;
   return (
@@ -46,12 +48,12 @@ export function CoreMark({ state = "idle", size = 150, level = 0, className = ""
       data-state={state}
     >
       <defs>
-        <radialGradient id="core-mark-glow" cx="50%" cy="50%" r="50%">
+        <radialGradient id={glowId} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="currentColor" stopOpacity="0.35" />
           <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
         </radialGradient>
       </defs>
-      <circle className="core-mark__glow" cx="16" cy="16" r="9" fill="url(#core-mark-glow)" />
+      <circle className="core-mark__glow" cx="16" cy="16" r="9" fill={`url(#${glowId})`} />
       <g className="core-mark__orbit core-mark__orbit--a">
         <ellipse cx="16" cy="16" rx="13" ry="6" transform="rotate(-30 16 16)" />
       </g>

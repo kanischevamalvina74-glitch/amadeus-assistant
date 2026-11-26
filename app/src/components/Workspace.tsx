@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HUDCore, MiniCore, MetricCard } from "./primitives";
+import { HUDCore, MetricCard } from "./primitives";
+import { CoreMark } from "./CoreMark";
 import { RichText } from "./RichText";
 import { conversations, type ChatMessage, type Conversation } from "../data/mock";
 import type { HudState } from "./primitives";
@@ -366,12 +367,19 @@ export function Workspace({
   }, [state]);
 
   useEffect(() => {
+    // Микрофон замолчал или сессию остановили: через 400 мс без уровня ядро сдувается.
+    let quiet = 0;
     const onLevel = (event: Event) => {
       const value = (event as CustomEvent<number>).detail;
       setVoiceLevel(typeof value === "number" ? value : 0);
+      window.clearTimeout(quiet);
+      quiet = window.setTimeout(() => setVoiceLevel(0), 400);
     };
     window.addEventListener("amadeus.voice.level", onLevel);
-    return () => window.removeEventListener("amadeus.voice.level", onLevel);
+    return () => {
+      window.clearTimeout(quiet);
+      window.removeEventListener("amadeus.voice.level", onLevel);
+    };
   }, []);
 
   useEffect(() => {
@@ -566,7 +574,7 @@ export function Workspace({
           className={`status-orb status-orb--${state}`}
           title={`Процессор ${metrics ? `${metrics.cpu}%` : "—"} · Память ${metrics ? `${metrics.memory.used_gb} ГБ` : "—"} · Сеанс ${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")} · ${OLLAMA_LABEL}`}
         >
-          <MiniCore state={state} size={40} level={voiceLevel} />
+          <CoreMark state={state} size={28} level={voiceLevel} className="status-orb__core" />
           <strong className="app-status-text">
             {!backendOnline ? tr("status.offline") : model.hasModel ? tr("status.online") : tr("status.noModel")}
           </strong>
@@ -729,7 +737,7 @@ export function Workspace({
 
             {!sphereMode && (
               <div className="hud-compact">
-                <MiniCore state={state} size={64} />
+                <CoreMark state={state} size={64} level={voiceLevel} />
                 <div className="hud-compact__column">
                   <span className="sr-only" role="status" aria-label="Состояние ядра">
                     ● {state === "idle" ? tr("state.idle") : tr(`state.${state}`)}
