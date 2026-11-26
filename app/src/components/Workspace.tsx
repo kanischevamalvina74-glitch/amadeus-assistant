@@ -44,6 +44,8 @@ type Props = {
   onOpenSettings: () => void;
   onCapture: () => Promise<AttachmentPayload | null>;
   onCollapse: () => void;
+  /** Голосовой режим большого окна включён. */
+  talking?: boolean;
   onTalk: () => void;
   onToggleTheme: () => void;
   onStop: () => void;
@@ -330,6 +332,7 @@ export function Workspace({
   onCapture,
   onCollapse,
   onTalk,
+  talking = false,
   onToggleTheme,
   onStop,
   onRegenerate,
@@ -988,7 +991,14 @@ export function Workspace({
                   </div>
                 )}
               </div>
-              <button className="icon-btn" title={tr("voice.microphone")} type="button" onClick={onTalk} aria-label={tr("voice.microphone")}>
+              <button
+                className="icon-btn"
+                title={talking ? tr("voice.microphoneOff") : tr("voice.microphone")}
+                type="button"
+                onClick={onTalk}
+                aria-label={tr("voice.microphone")}
+                aria-pressed={talking}
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <rect x="9" y="3" width="6" height="11" rx="3" />
                   <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
