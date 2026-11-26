@@ -19,6 +19,27 @@ test.describe("F21 кодовая фраза и свёрнутый режим", 
     expect(a11y.violations).toEqual([]);
   });
 
+  test("F21-H3 окошко: статус капсом и кнопка «Развернуть»", async ({ page }) => {
+    await collapse(page);
+    await expect(page.locator(".mini-card__status")).toHaveText("Жду");
+    await expect(page.locator(".mini-card .core-mark")).toBeVisible();
+    await page.getByRole("button", { name: "Развернуть" }).click();
+    await expect(page.getByText("SQLite · локальное хранилище")).toBeVisible();
+  });
+
+  test("F21-H4 аватар «Сфера» в окошке", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("amadeus.avatar", "sphere"));
+    await collapse(page);
+    await expect(page.locator(".mini-card canvas")).toBeVisible();
+    await expect(page.locator(".mini-card .core-mark")).toHaveCount(0);
+  });
+
+  test("F21-H5 старый аватар «character» становится ядром", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("amadeus.avatar", "character"));
+    await collapse(page);
+    await expect(page.locator(".mini-card .core-mark")).toBeVisible();
+  });
+
   test("F21-H2 активация клавишей W и голосовая команда", async ({ page }) => {
     await collapse(page);
     const caption = page.getByRole("status", { name: "Подпись состояния" });

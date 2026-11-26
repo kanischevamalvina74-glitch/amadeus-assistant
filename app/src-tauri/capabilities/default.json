@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Базовые разрешения главного окна",
   "windows": ["main"],
-  "permissions": ["core:default", "notification:default"]
+  "permissions": ["core:default", "core:window:allow-start-dragging", "notification:default"]
 }

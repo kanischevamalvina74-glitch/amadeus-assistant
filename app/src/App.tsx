@@ -123,12 +123,22 @@ export default function App() {
   });
   useEffect(() => () => voice.stop(), [voice.stop]);
 
-  // Вышли из свёрнутого окошка: гасим голосовую сессию и микрофон,
-  // а события больше не отдаём обработчику закрытого окошка.
+  // Переход в свёрнутый режим и обратно. На выходе из окошка гасим голосовую
+  // сессию и микрофон, а события больше не отдаём обработчику закрытого окошка.
+  // Окно меняем только на переходах, чтобы не сбивать размер при старте.
+  const prevView = useRef(view);
   useEffect(() => {
-    if (view !== "mini") {
+    const root = document.documentElement;
+    if ("__TAURI_INTERNALS__" in window) root.dataset.shell = "tauri";
+    root.dataset.view = view;
+    const was = prevView.current;
+    prevView.current = view;
+    if (view === "mini" && was !== "mini") {
+      void shell.setMiniWindow(true);
+    } else if (view !== "mini" && was === "mini") {
       voice.stop();
       overlayVoiceHandler.current = () => undefined;
+      void shell.setMiniWindow(false);
     }
   }, [view, voice.stop]);
 

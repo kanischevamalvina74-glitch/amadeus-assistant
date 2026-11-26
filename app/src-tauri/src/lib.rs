@@ -206,6 +206,96 @@ fn window_hide(app: tauri::AppHandle) {
     }
 }
 
+/// Размер свёрнутого окошка (логические пиксели): карточка 270×330 и поля под тень.
+const MINI_SIZE: (f64, f64) = (300.0, 360.0);
+/// Окно сейчас в свёрнутом режиме: только тогда запоминаем его место.
+static MINI_ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn mini_pos_path(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_data_dir().ok().map(|dir| dir.join("mini-window.json"))
+}
+
+/// Последнее место окошка, если оно всё ещё на одном из мониторов.
+fn load_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) -> Option<tauri::PhysicalPosition<i32>> {
+    let raw = std::fs::read_to_string(mini_pos_path(app)?).ok()?;
+    let value: Value = serde_json::from_str(&raw).ok()?;
+    let x = value.get("x")?.as_i64()? as i32;
+    let y = value.get("y")?.as_i64()? as i32;
+    let monitors = window.available_monitors().ok()?;
+    let visible = monitors.iter().any(|m| {
+        let p = m.position();
+        let s = m.size();
+        x >= p.x && y >= p.y && x < p.x + s.width as i32 - 40 && y < p.y + s.height as i32 - 40
+    });
+    visible.then_some(tauri::PhysicalPosition { x, y })
+}
+
+fn save_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+    let (Some(path), Ok(pos)) = (mini_pos_path(app), window.outer_position()) else { return };
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let _ = std::fs::write(path, json!({ "x": pos.x, "y": pos.y }).to_string());
+}
+
+/// Свёрнутый режим: маленькое прозрачное окно без рамки поверх всех окон.
+/// Первый раз — правый нижний угол текущего монитора, дальше — где его оставили.
+#[tauri::command]
+fn window_mini(app: tauri::AppHandle, enabled: bool) {
+    let Some(window) = app.get_webview_window("main") else { return };
+    if enabled {
+        MINI_ACTIVE.store(true, std::sync::atomic::Ordering::SeqCst);
+        let (w, h) = MINI_SIZE;
+        let _ = window.set_fullscreen(false);
+        let _ = window.unmaximize();
+        let _ = window.set_decorations(false);
+        let _ = window.set_shadow(false);
+        let _ = window.set_min_size(None::<tauri::Size>);
+        let _ = window.set_resizable(false);
+        let _ = window.set_maximizable(false);
+        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
+        let _ = window.set_always_on_top(true);
+        let _ = window.set_skip_taskbar(true);
+        let position = load_mini_pos(&app, &window).or_else(|| {
+            let monitor = window.current_monitor().ok().flatten()?;
+            let scale = monitor.scale_factor();
+            let size = monitor.size();
+            let pos = monitor.position();
+            // 24 px от края и ещё 48 px снизу под панель задач Windows.
+            let x = pos.x + size.width as i32 - ((w + 24.0) * scale) as i32;
+            let y = pos.y + size.height as i32 - ((h + 24.0 + 48.0) * scale) as i32;
+            Some(tauri::PhysicalPosition { x, y })
+        });
+        if let Some(position) = position {
+            let _ = window.set_position(tauri::Position::Physical(position));
+        }
+    } else {
+        if MINI_ACTIVE.swap(false, std::sync::atomic::Ordering::SeqCst) {
+            save_mini_pos(&app, &window);
+        }
+        let _ = window.set_always_on_top(false);
+        let _ = window.set_skip_taskbar(false);
+        let _ = window.set_decorations(true);
+        let _ = window.set_shadow(true);
+        let _ = window.set_resizable(true);
+        let _ = window.set_maximizable(true);
+        let _ = window.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize { width: 900.0, height: 600.0 })));
+        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: 1440.0, height: 900.0 }));
+        let _ = window.center();
+    }
+    let _ = window.show();
+}
+
+/// «—» в окошке: убрать с экрана, но оставить на панели задач, чтобы вернуть одним кликом.
+/// Трея пока нет, поэтому прятать окно совсем нельзя — его было бы не найти.
+#[tauri::command]
+fn window_mini_minimize(app: tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else { return };
+    save_mini_pos(&app, &window);
+    let _ = window.set_skip_taskbar(false);
+    let _ = window.minimize();
+}
+
 #[tauri::command]
 fn window_show(app: tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -314,6 +404,8 @@ pub fn run() {
             window_hide,
             window_show,
             window_fullscreen,
+            window_mini,
+            window_mini_minimize,
             setup_status,
             setup_complete,
             settings_get,
