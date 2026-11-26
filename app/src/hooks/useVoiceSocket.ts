@@ -24,11 +24,14 @@ export function useVoiceSocket(onEvent: (event: VoiceSocketEvent) => void): Voic
   const media = useRef<MediaStream | null>(null);
   const context = useRef<AudioContext | null>(null);
   const processor = useRef<ScriptProcessorNode | null>(null);
+  // Номер запуска: stop() его меняет, и запоздавший getUserMedia понимает, что его отменили.
+  const generation = useRef(0);
   const audio = useRef<HTMLAudioElement | null>(null);
   const handler = useRef(onEvent);
   handler.current = onEvent;
 
   const stop = useCallback(() => {
+    generation.current += 1;
     processor.current?.disconnect();
     processor.current = null;
     media.current?.getTracks().forEach((track) => track.stop());
@@ -69,9 +72,16 @@ export function useVoiceSocket(onEvent: (event: VoiceSocketEvent) => void): Voic
       };
       ws.onclose = () => setActive(false);
       socket.current = ws;
+      const run = generation.current;
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (run !== generation.current) {
+          // Пока ждали разрешения, сессию остановили: микрофон сразу гасим.
+          stream.getTracks().forEach((track) => track.stop());
+          ws.close();
+          return false;
+        }
         media.current = stream;
         const ctx = new AudioContext({ sampleRate: 16_000 });
         context.current = ctx;
@@ -100,7 +110,8 @@ export function useVoiceSocket(onEvent: (event: VoiceSocketEvent) => void): Voic
         setActive(true);
         return true;
       } catch {
-        stop();
+        if (run === generation.current) stop();
+        else ws.close();
         return false;
       }
     },

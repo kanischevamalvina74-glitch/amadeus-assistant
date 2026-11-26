@@ -112,10 +112,16 @@ export const shell = {
     await invoke("window_show").catch(() => undefined);
   },
 
-  /** Свёрнутый режим: маленькое прозрачное окно без рамки поверх всех. */
-  async setMiniWindow(enabled: boolean): Promise<void> {
-    if (!("__TAURI_INTERNALS__" in window)) return;
-    await invoke("window_mini", { enabled }).catch(() => undefined);
+  /** Свёрнутый режим: маленькое прозрачное окно без рамки поверх всех. false — окно перестроить не удалось. */
+  async setMiniWindow(enabled: boolean): Promise<boolean> {
+    if (!("__TAURI_INTERNALS__" in window)) return true;
+    try {
+      await invoke("window_mini", { enabled });
+      return true;
+    } catch (error) {
+      console.warn("window_mini", enabled, error);
+      return false;
+    }
   },
 
   /** «—» в окошке: убрать на панель задач. */

@@ -221,17 +221,22 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
 
   return (
     <div className="mini-stage" aria-label="Свёрнутый режим Amadeus">
+      {/* Tauri 2 тащит окно только за элемент с data-tauri-drag-region, а не за его детей,
+          поэтому атрибут стоит на фоне, полосе и подписях, но не на кнопках и аватаре. */}
       <section className={`mini-card mini-card--${state}`} data-tauri-drag-region>
-        <div className="mini-card__bar">
-          <button
-            type="button"
-            className="mini-card__btn"
-            title={tr("mini.minimize")}
-            aria-label={tr("mini.minimize")}
-            onClick={() => void shell.minimizeMini()}
-          >
-            <span aria-hidden="true">—</span>
-          </button>
+        <div className="mini-card__bar" data-tauri-drag-region>
+          {inShell && (
+            // На панель задач можно убрать только окно приложения; в браузере кнопки нет.
+            <button
+              type="button"
+              className="mini-card__btn"
+              title={tr("mini.minimize")}
+              aria-label={tr("mini.minimize")}
+              onClick={() => void shell.minimizeMini()}
+            >
+              <span aria-hidden="true">—</span>
+            </button>
+          )}
           <button
             type="button"
             className="mini-card__btn"

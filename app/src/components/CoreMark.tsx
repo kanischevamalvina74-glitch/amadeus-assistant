@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { HudState } from "./primitives";
 import "./core-mark.css";
 
@@ -12,8 +13,27 @@ type Props = {
   className?: string;
 };
 
+const REDUCE_QUERY = "(prefers-reduced-motion: reduce)";
+
+/** Пользователь просит меньше движения: ядро не раздувается от голоса. */
+function useReducedMotion(): boolean {
+  const [reduce, setReduce] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.(REDUCE_QUERY).matches,
+  );
+  useEffect(() => {
+    const query = window.matchMedia?.(REDUCE_QUERY);
+    if (!query) return;
+    const update = () => setReduce(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return reduce;
+}
+
 export function CoreMark({ state = "idle", size = 150, level = 0, className = "" }: Props) {
-  const voice = Math.max(0, Math.min(1, level));
+  const reduceMotion = useReducedMotion();
+  const voice = reduceMotion ? 0 : Math.max(0, Math.min(1, level));
   const coreScale = 1 + voice * 0.7;
   return (
     <svg

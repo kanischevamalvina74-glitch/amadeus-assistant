@@ -126,6 +126,10 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
             }
             std::thread::sleep(Duration::from_millis(200));
         }
+        // Ядро могло занять порт и тут же упасть: перепроверяем флаг уже после готовности.
+        if exited.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err("ядро завершилось при запуске, подробности в logs/core.log".into());
+        }
         *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Sidecar(child));
         return Ok(if ready {
             "ядро запущено из externalBin".into()
@@ -210,24 +214,34 @@ fn window_hide(app: tauri::AppHandle) {
 const MINI_SIZE: (f64, f64) = (300.0, 360.0);
 /// Окно сейчас в свёрнутом режиме: только тогда запоминаем его место.
 static MINI_ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// Окошко убрано «—» на панель задач: при возвращении снова прячем значок.
+static MINI_MINIMIZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn mini_pos_path(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
     app.path().app_data_dir().ok().map(|dir| dir.join("mini-window.json"))
 }
 
-/// Последнее место окошка, если оно всё ещё на одном из мониторов.
+/// Последнее место окошка. Если карточка не помещается на мониторе целиком,
+/// её подвигаем внутрь; если точка вообще не на мониторе — None (будет угол по умолчанию).
 fn load_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) -> Option<tauri::PhysicalPosition<i32>> {
     let raw = std::fs::read_to_string(mini_pos_path(app)?).ok()?;
     let value: Value = serde_json::from_str(&raw).ok()?;
     let x = value.get("x")?.as_i64()? as i32;
     let y = value.get("y")?.as_i64()? as i32;
     let monitors = window.available_monitors().ok()?;
-    let visible = monitors.iter().any(|m| {
+    let monitor = monitors.iter().find(|m| {
         let p = m.position();
         let s = m.size();
-        x >= p.x && y >= p.y && x < p.x + s.width as i32 - 40 && y < p.y + s.height as i32 - 40
-    });
-    visible.then_some(tauri::PhysicalPosition { x, y })
+        x >= p.x && y >= p.y && x < p.x + s.width as i32 && y < p.y + s.height as i32
+    })?;
+    let p = monitor.position();
+    let s = monitor.size();
+    let scale = monitor.scale_factor();
+    let w = (MINI_SIZE.0 * scale).ceil() as i32;
+    let h = (MINI_SIZE.1 * scale).ceil() as i32;
+    let max_x = (p.x + s.width as i32 - w).max(p.x);
+    let max_y = (p.y + s.height as i32 - h).max(p.y);
+    Some(tauri::PhysicalPosition { x: x.clamp(p.x, max_x), y: y.clamp(p.y, max_y) })
 }
 
 fn save_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
@@ -241,21 +255,23 @@ fn save_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
 /// Свёрнутый режим: маленькое прозрачное окно без рамки поверх всех окон.
 /// Первый раз — правый нижний угол текущего монитора, дальше — где его оставили.
 #[tauri::command]
-fn window_mini(app: tauri::AppHandle, enabled: bool) {
-    let Some(window) = app.get_webview_window("main") else { return };
+fn window_mini(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let window = app.get_webview_window("main").ok_or("окно main не найдено")?;
+    let err = |e: tauri::Error| e.to_string();
     if enabled {
         MINI_ACTIVE.store(true, std::sync::atomic::Ordering::SeqCst);
+        MINI_MINIMIZED.store(false, std::sync::atomic::Ordering::SeqCst);
         let (w, h) = MINI_SIZE;
         let _ = window.set_fullscreen(false);
         let _ = window.unmaximize();
-        let _ = window.set_decorations(false);
+        window.set_decorations(false).map_err(err)?;
         let _ = window.set_shadow(false);
-        let _ = window.set_min_size(None::<tauri::Size>);
-        let _ = window.set_resizable(false);
+        window.set_min_size(None::<tauri::Size>).map_err(err)?;
+        window.set_resizable(false).map_err(err)?;
         let _ = window.set_maximizable(false);
-        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
-        let _ = window.set_always_on_top(true);
-        let _ = window.set_skip_taskbar(true);
+        window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h })).map_err(err)?;
+        window.set_always_on_top(true).map_err(err)?;
+        window.set_skip_taskbar(true).map_err(err)?;
         let position = load_mini_pos(&app, &window).or_else(|| {
             let monitor = window.current_monitor().ok().flatten()?;
             let scale = monitor.scale_factor();
@@ -267,23 +283,25 @@ fn window_mini(app: tauri::AppHandle, enabled: bool) {
             Some(tauri::PhysicalPosition { x, y })
         });
         if let Some(position) = position {
-            let _ = window.set_position(tauri::Position::Physical(position));
+            window.set_position(tauri::Position::Physical(position)).map_err(err)?;
         }
     } else {
+        MINI_MINIMIZED.store(false, std::sync::atomic::Ordering::SeqCst);
         if MINI_ACTIVE.swap(false, std::sync::atomic::Ordering::SeqCst) {
             save_mini_pos(&app, &window);
         }
-        let _ = window.set_always_on_top(false);
-        let _ = window.set_skip_taskbar(false);
-        let _ = window.set_decorations(true);
+        window.set_always_on_top(false).map_err(err)?;
+        window.set_skip_taskbar(false).map_err(err)?;
+        window.set_decorations(true).map_err(err)?;
         let _ = window.set_shadow(true);
-        let _ = window.set_resizable(true);
+        window.set_resizable(true).map_err(err)?;
         let _ = window.set_maximizable(true);
-        let _ = window.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize { width: 900.0, height: 600.0 })));
-        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: 1440.0, height: 900.0 }));
+        window.set_min_size(Some(tauri::Size::Logical(tauri::LogicalSize { width: 900.0, height: 600.0 }))).map_err(err)?;
+        window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: 1440.0, height: 900.0 })).map_err(err)?;
         let _ = window.center();
     }
-    let _ = window.show();
+    window.show().map_err(err)?;
+    Ok(())
 }
 
 /// «—» в окошке: убрать с экрана, но оставить на панели задач, чтобы вернуть одним кликом.
@@ -292,6 +310,7 @@ fn window_mini(app: tauri::AppHandle, enabled: bool) {
 fn window_mini_minimize(app: tauri::AppHandle) {
     let Some(window) = app.get_webview_window("main") else { return };
     save_mini_pos(&app, &window);
+    MINI_MINIMIZED.store(true, std::sync::atomic::Ordering::SeqCst);
     let _ = window.set_skip_taskbar(false);
     let _ = window.minimize();
 }
@@ -396,6 +415,17 @@ pub fn run() {
             }
         }))
         .manage(SidecarState(Mutex::new(None)))
+        .on_window_event(|window, event| {
+            // Окошко вернули с панели задач: значок снова не нужен.
+            if let tauri::WindowEvent::Focused(true) = event {
+                let restored = MINI_ACTIVE.load(std::sync::atomic::Ordering::SeqCst)
+                    && MINI_MINIMIZED.swap(false, std::sync::atomic::Ordering::SeqCst);
+                if restored {
+                    let _ = window.set_skip_taskbar(true);
+                    let _ = window.set_always_on_top(true);
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             app_health,
             start_backend,
@@ -472,6 +502,16 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("ошибка запуска оболочки Tauri")
         .run(|_app, event| {
+            if matches!(event, tauri::RunEvent::ExitRequested { .. }) {
+                // Выходим прямо из окошка: запоминаем, где оно стояло.
+                if MINI_ACTIVE.load(std::sync::atomic::Ordering::SeqCst)
+                    && !MINI_MINIMIZED.load(std::sync::atomic::Ordering::SeqCst)
+                {
+                    if let Some(window) = _app.get_webview_window("main") {
+                        save_mini_pos(_app, &window);
+                    }
+                }
+            }
             if matches!(event, tauri::RunEvent::Exit) {
                 if let Some(state) = _app.try_state::<SidecarState>() {
                     if let Ok(mut guard) = state.0.lock() {
