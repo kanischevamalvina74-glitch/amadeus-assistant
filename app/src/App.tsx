@@ -126,6 +126,10 @@ export default function App() {
   // Переход в свёрнутый режим и обратно. На выходе из окошка гасим голосовую
   // сессию и микрофон, а события больше не отдаём обработчику закрытого окошка.
   // Окно меняем только на переходах, чтобы не сбивать размер при старте.
+  // Голосовой режим прямо в большом окне, без сворачивания в окошко.
+  const [talking, setTalking] = useState(false);
+  const talkingRef = useRef(false);
+  talkingRef.current = talking;
   const prevView = useRef(view);
   // Перестройки окна идут строго по очереди: быстрое «свернула-развернула»
   // не перемешивает вызовы, а устаревший переход пропускается.
@@ -151,6 +155,12 @@ export default function App() {
     const was = prevView.current;
     prevView.current = view;
     if (view === "mini" && was !== "mini") {
+      // Голос большого окна не тянем в окошко: у окошка своя сессия.
+      if (talkingRef.current) {
+        voice.stop();
+        setTalking(false);
+        setState("idle");
+      }
       queueWindowMode(true);
     } else if (view !== "mini" && was === "mini") {
       voice.stop();
@@ -158,6 +168,71 @@ export default function App() {
       queueWindowMode(false);
     }
   }, [view, voice.stop]);
+
+  // События голосовой сессии большого окна: реплики попадают в чат, ядро меняет состояние.
+  const speakTimer = useRef(0);
+  const handleWorkspaceVoice = useCallback((event: VoiceSocketEvent) => {
+    if (event.event === "transcript" && event.text) {
+      const text = event.text;
+      setState("thinking");
+      setMessages((prev) => [...prev, { id: newId(), role: "user", time: nowTime(), text }]);
+    } else if (event.event === "token" && event.text) {
+      const text = event.text;
+      setState("speaking");
+      setMessages((prev) => [...prev, { id: newId(), role: "assistant", time: nowTime(), text }]);
+      window.clearTimeout(speakTimer.current);
+      speakTimer.current = window.setTimeout(() => {
+        if (talkingRef.current) setState("listening");
+      }, 1500);
+    } else if (event.event === "barge_in" || event.event === "canceled") {
+      setState("listening");
+    } else if (event.event === "error") {
+      setState("error");
+      setMessages((prev) => [
+        ...prev,
+        { id: newId(), role: "assistant", time: nowTime(), text: event.message ?? "Ошибка голосовой сессии", error: true },
+      ]);
+    }
+  }, []);
+  useEffect(() => {
+    if (view === "workspace" && talking) overlayVoiceHandler.current = handleWorkspaceVoice;
+  }, [view, talking, handleWorkspaceVoice]);
+  // Сокет закрылся сам (ядро ушло): выключаем режим, чтобы кнопка не врала.
+  useEffect(() => {
+    if (talking && !voice.active) {
+      setTalking(false);
+      setState("idle");
+    }
+  }, [talking, voice.active]);
+  useEffect(() => () => window.clearTimeout(speakTimer.current), []);
+
+  const toggleWorkspaceTalk = useCallback(async () => {
+    if (talkingRef.current) {
+      voice.stop();
+      overlayVoiceHandler.current = () => undefined;
+      setTalking(false);
+      setState("idle");
+      return;
+    }
+    overlayVoiceHandler.current = handleWorkspaceVoice;
+    const ok = await voice.start(conversationId ?? undefined);
+    if (ok) {
+      setTalking(true);
+      setState("listening");
+    } else {
+      overlayVoiceHandler.current = () => undefined;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: newId(),
+          role: "assistant",
+          time: nowTime(),
+          text: "Микрофон недоступен: проверьте разрешение и что ядро в сети.",
+          error: true,
+        },
+      ]);
+    }
+  }, [voice.start, voice.stop, conversationId, handleWorkspaceVoice]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -704,10 +779,8 @@ export default function App() {
             setAutoWake(false);
             setView("mini");
           }}
-          onTalk={() => {
-            setAutoWake(true);
-            setView("mini");
-          }}
+          talking={talking}
+          onTalk={() => void toggleWorkspaceTalk()}
           onToggleTheme={() => chooseTheme(theme === "dark" ? "light" : "dark")}
           onStop={stopAnswer}
           onRegenerate={regenerate}

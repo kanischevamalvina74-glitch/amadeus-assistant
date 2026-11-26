@@ -56,6 +56,8 @@ export function useVoiceSocket(onEvent: (event: VoiceSocketEvent) => void): Voic
       ws.onmessage = (message) => {
         if (typeof message.data !== "string") return;
         try {
+          // Кадры от уже закрытого сокета (старой сессии) не показываем.
+          if (socket.current !== ws) return;
           const event = JSON.parse(message.data) as VoiceSocketEvent;
           handler.current(event);
           if (event.event === "barge_in") {
@@ -89,7 +91,8 @@ export function useVoiceSocket(onEvent: (event: VoiceSocketEvent) => void): Voic
         const node = ctx.createScriptProcessor(512, 1, 1);
         processor.current = node;
         node.onaudioprocess = (samples) => {
-          if (ws.readyState !== WebSocket.OPEN) return;
+          // Запоздавший кадр остановленной сессии не должен двигать ядро новой.
+          if (run !== generation.current || ws.readyState !== WebSocket.OPEN) return;
           const input = samples.inputBuffer.getChannelData(0);
           const pcm = new Int16Array(input.length);
           for (let i = 0; i < input.length; i += 1) {

@@ -1069,7 +1069,10 @@ button.hud-compact__status:hover { text-decoration: underline; }
 }
 .app-header .name { font-size: 20px; letter-spacing: .01em; }
 .status-orb { display: flex; align-items: center; gap: 8px; cursor: help; }
-.status-orb .mini { width: 20px !important; height: 20px !important; }
+.status-orb .core-mark { flex: none; }
+/* В светлой теме белое ядро теряется на фоне: делаем его тёмным. Ошибку не трогаем — она красная. */
+html[data-theme="light"] .status-orb .core-mark:not(.core-mark--error) .core-mark__core,
+html[data-theme="light"] .hud-compact .core-mark:not(.core-mark--error) .core-mark__core { fill: #12383C; }
 .app-status-text {
   font-family: var(--font-mono); font-size: 10px; font-weight: 500;
   letter-spacing: .14em; text-transform: uppercase; color: var(--color-text-muted);

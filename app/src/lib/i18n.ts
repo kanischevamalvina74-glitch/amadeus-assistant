@@ -32,6 +32,7 @@ const MESSAGES: Messages = {
   "state.error": { ru: "ошибка", en: "error" },
   "state.muted": { ru: "микрофон выключен", en: "microphone muted" },
   "voice.microphone": { ru: "Микрофон", en: "Microphone" },
+  "voice.microphoneOff": { ru: "Выключить микрофон", en: "Turn microphone off" },
   "voice.collapse": { ru: "Esc", en: "Esc" },
   "composer.placeholder": { ru: "Спросите что-нибудь или скажите «Amadeus»", en: "Ask something or say “Amadeus”" },
   "composer.hintEnter": { ru: "Enter — отправить", en: "Enter — send" },
