@@ -12,6 +12,7 @@ import hashlib
 import hmac
 import json
 import logging
+import sys
 import os
 import re
 import time
@@ -101,8 +102,15 @@ class RedactFilter(logging.Filter):
 logger = logging.getLogger("amadeus")
 logger.setLevel(getattr(logging, settings.log_level, logging.INFO))
 if not logger.handlers:
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    # В собранном ядре (PyInstaller, console=False) sys.stderr = None: тогда пишем
+    # прямо в logs/core.log рядом с data/, туда же, куда оболочка пишет вывод ядра.
+    if sys.stderr is None:
+        log_file = settings.db_path.parent.parent / "logs" / "core.log"
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        handler: logging.Handler = logging.FileHandler(log_file, encoding="utf-8", delay=True)
+    else:
+        handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
     handler.addFilter(RedactFilter())
     logger.addHandler(handler)
 

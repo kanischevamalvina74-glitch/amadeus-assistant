@@ -8,13 +8,19 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 import os
+import re
 import tempfile
 from array import array
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import AsyncIterator, Awaitable, Callable, Protocol
+
+from .proc import NO_WINDOW
+
+logger = logging.getLogger("amadeus.voice")  # пишет через обработчики «amadeus» (core.log)
 
 SAMPLE_RATE = 16_000
 FRAME_MS = 20
@@ -115,7 +121,9 @@ class WhisperSTT:
             self._model = WhisperModel(self.model_id, device=self.device, compute_type="int8")
         # numpy-массив вместо пути: не дёргаем PyAV, который несовместим с Python 3.14.
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
-        segments, _ = self._model.transcribe(audio, language="ru", vad_filter=True)
+        segments, _ = self._model.transcribe(
+            audio, language="ru", vad_filter=True, condition_on_previous_text=False
+        )
         return " ".join(segment.text.strip() for segment in segments).strip()
 
     async def transcribe(self, pcm: bytes) -> str:
@@ -190,6 +198,7 @@ class PiperTTS:
                 capture_output=True,
                 timeout=60,
                 check=False,
+                **NO_WINDOW,
             )
         finally:
             Path(source_path).unlink(missing_ok=True)
@@ -204,6 +213,58 @@ class PiperTTS:
             return Path(path).read_bytes()
         finally:
             Path(path).unlink(missing_ok=True)
+
+
+# Фразы, которые Whisper «слышит» в тишине и шуме: остатки субтитров из обучающих данных.
+# Отбрасываем, только если вся фраза целиком — такая подпись, а не просто упоминает слово.
+_HALLUCINATIONS = tuple(
+    re.compile(pattern)
+    for pattern in (
+        r"(редактор )?субтитры (сделал|создавал|подготовил|делал|редактировал)( \S+){0,3}",
+        r"редактор субтитров( \S+){0,8}",
+        r"продолжение следует",
+        r"(спасибо|благодарю) за (просмотр|внимание)",
+        r"подписывайтесь на (мой |наш )?канал",
+    )
+)
+
+
+def _normalize(text: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", text.lower()).split())
+
+
+def _question_tokens(text: str) -> int:
+    """Слова, целиком состоящие из «?»: так выглядит кириллица, потерянная при перекодировке."""
+    return sum(1 for token in text.split() if re.fullmatch(r"\?{2,}[.,:;!]*", token))
+
+
+def transcript_problem(text: str) -> str | None:
+    """Почему распознанный текст нельзя отдавать модели, или None, если он годен."""
+    stripped = text.strip()
+    if not stripped:
+        return "empty"
+    if "\ufffd" in stripped:
+        return "broken-encoding"
+    tokens = stripped.split()
+    broken = _question_tokens(stripped)
+    # «Что???» или «Правда?» — обычные вопросы; «?????? ?????» — потерянные буквы.
+    if broken >= 2 or (broken and broken * 2 >= len(tokens)):
+        return "broken-encoding"
+    normalized = _normalize(stripped)
+    if "dimatorzok" in normalized or any(p.fullmatch(normalized) for p in _HALLUCINATIONS):
+        return "hallucination"
+    return None
+
+
+def transcript_stats(text: str) -> str:
+    """Сводка для журнала без содержимого: по ней видно, где теряются буквы, но текст не восстановить."""
+    cyrillic = sum("\u0400" <= ch <= "\u04ff" for ch in text)
+    latin = sum(ch.isascii() and ch.isalpha() for ch in text)
+    replacement = text.count("\ufffd")
+    return (
+        f"len={len(text)} cyrillic={cyrillic} latin={latin} "
+        f"question={text.count('?')} replacement={replacement}"
+    )
 
 
 WAKE_WORDS = ("амадеус", "амадей", "amadeus", "амадиус")
@@ -255,7 +316,12 @@ class VoicePipeline:
     async def process_text(self, text: str) -> None:
         """Текстовый вход в той же сессии (клавиша W без микрофона)."""
         text = text.strip()
-        if not text:
+        problem = transcript_problem(text)
+        if problem == "empty":
+            return
+        if problem:
+            logger.warning("Текст отброшен (%s): %s", problem, transcript_stats(text))
+            await self.emit(VoiceEvent("error", {"message": "Не расслышал, повторите"}))
             return
         await self.emit(VoiceEvent("transcript", {"text": text}))
         if await self._local_command(text):
@@ -265,8 +331,11 @@ class VoicePipeline:
     async def process_utterance(self, pcm: bytes) -> None:
         await self.emit(VoiceEvent("listening_end"))
         text = await self.stt.transcribe(pcm)
-        if not text:
-            await self.emit(VoiceEvent("error", {"message": "Речь не распознана"}))
+        problem = transcript_problem(text or "")
+        if problem:
+            if problem != "empty":
+                logger.warning("STT отброшен (%s): %s", problem, transcript_stats(text))
+            await self.emit(VoiceEvent("error", {"message": "Не расслышал, повторите"}))
             return
         await self.emit(VoiceEvent("transcript", {"text": text}))
         if await self._local_command(text):
