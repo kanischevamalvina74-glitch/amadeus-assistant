@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from .proc import NO_WINDOW
+
 IGNORED_DIRS = {
     ".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv",
     "target", "dist", "build", ".next", ".cache", ".pytest_cache", ".idea",
@@ -222,6 +224,7 @@ def run_command(
             capture_output=True,
             timeout=timeout,
             env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+            **NO_WINDOW,
         )
         output = _decode_output(completed.stdout)
         errors = _decode_output(completed.stderr)

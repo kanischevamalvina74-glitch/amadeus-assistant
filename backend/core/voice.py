@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 import os
 import tempfile
@@ -15,6 +16,10 @@ from array import array
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import AsyncIterator, Awaitable, Callable, Protocol
+
+from .proc import NO_WINDOW
+
+logger = logging.getLogger("amadeus.voice")
 
 SAMPLE_RATE = 16_000
 FRAME_MS = 20
@@ -115,7 +120,9 @@ class WhisperSTT:
             self._model = WhisperModel(self.model_id, device=self.device, compute_type="int8")
         # numpy-массив вместо пути: не дёргаем PyAV, который несовместим с Python 3.14.
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
-        segments, _ = self._model.transcribe(audio, language="ru", vad_filter=True)
+        segments, _ = self._model.transcribe(
+            audio, language="ru", vad_filter=True, condition_on_previous_text=False
+        )
         return " ".join(segment.text.strip() for segment in segments).strip()
 
     async def transcribe(self, pcm: bytes) -> str:
@@ -190,6 +197,7 @@ class PiperTTS:
                 capture_output=True,
                 timeout=60,
                 check=False,
+                **NO_WINDOW,
             )
         finally:
             Path(source_path).unlink(missing_ok=True)
@@ -204,6 +212,32 @@ class PiperTTS:
             return Path(path).read_bytes()
         finally:
             Path(path).unlink(missing_ok=True)
+
+
+# Фразы, которые Whisper «слышит» в тишине и шуме: остатки субтитров из обучающих данных.
+_HALLUCINATIONS = (
+    "субтитр",
+    "продолжение следует",
+    "спасибо за просмотр",
+    "подписывайтесь на канал",
+    "dimatorzok",
+)
+
+
+def transcript_problem(text: str) -> str | None:
+    """Почему распознанный текст нельзя отдавать модели, или None, если он годен."""
+    stripped = text.strip()
+    if not stripped:
+        return "empty"
+    if "\ufffd" in stripped:
+        return "broken-encoding"
+    visible = [ch for ch in stripped if not ch.isspace()]
+    if visible and sum(ch == "?" for ch in visible) / len(visible) > 0.3:
+        return "broken-encoding"
+    lowered = stripped.lower()
+    if any(marker in lowered for marker in _HALLUCINATIONS):
+        return "hallucination"
+    return None
 
 
 WAKE_WORDS = ("амадеус", "амадей", "amadeus", "амадиус")
@@ -265,8 +299,16 @@ class VoicePipeline:
     async def process_utterance(self, pcm: bytes) -> None:
         await self.emit(VoiceEvent("listening_end"))
         text = await self.stt.transcribe(pcm)
-        if not text:
-            await self.emit(VoiceEvent("error", {"message": "Речь не распознана"}))
+        problem = transcript_problem(text or "")
+        if problem:
+            if problem != "empty":
+                # Коды символов, а не сам текст: видно, где теряется кириллица.
+                logger.warning(
+                    "STT отброшен (%s): %s",
+                    problem,
+                    " ".join(f"U+{ord(ch):04X}" for ch in text[:16]),
+                )
+            await self.emit(VoiceEvent("error", {"message": "Не расслышал, повторите"}))
             return
         await self.emit(VoiceEvent("transcript", {"text": text}))
         if await self._local_command(text):

@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .proc import NO_WINDOW
+
 IS_WINDOWS = os.name == "nt"
 IS_MAC = sys.platform == "darwin"
 
@@ -76,6 +78,7 @@ def _run(command: list[str], *, timeout: float = 10.0) -> subprocess.CompletedPr
         text=True,
         timeout=timeout,
         check=False,
+        **NO_WINDOW,
     )
 
 
@@ -290,7 +293,7 @@ def open_app(name: str) -> dict[str, Any]:
         webbrowser.open(target)
         return {"ok": True, "message": "Открыт браузер"}
     if IS_WINDOWS:
-        subprocess.Popen(["cmd", "/c", "start", "", target])  # noqa: S603
+        subprocess.Popen(["cmd", "/c", "start", "", target], **NO_WINDOW)  # noqa: S603
     elif IS_MAC:
         subprocess.Popen(["open", "-a", target])  # noqa: S603
     else:

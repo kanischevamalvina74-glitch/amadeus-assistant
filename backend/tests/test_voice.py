@@ -157,3 +157,41 @@ def test_websocket_voice_session_accepts_frames() -> None:
             for _ in range(3):
                 ws.send_bytes(silence)
             ws.send_json({"type": "cancel"})
+
+
+@pytest.mark.parametrize(
+    ("text", "problem"),
+    [
+        ("привет", None),
+        ("Что такое Python? Расскажи", None),
+        ("?????? ????? ??????: ??????", "broken-encoding"),
+        ("пр\ufffd\ufffdвет", "broken-encoding"),
+        ("Субтитры сделал DimaTorzok", "hallucination"),
+        ("Продолжение следует...", "hallucination"),
+        ("   ", "empty"),
+    ],
+)
+def test_transcript_problem(text: str, problem: str | None) -> None:
+    assert voice.transcript_problem(text) == problem
+
+
+def test_broken_transcript_does_not_reach_model() -> None:
+    class BrokenSTT:
+        async def transcribe(self, pcm: bytes) -> str:
+            return "?????? ????? ??????: ??????"
+
+    events: list[voice.VoiceEvent] = []
+    asked: list[str] = []
+
+    async def emit(event: voice.VoiceEvent) -> None:
+        events.append(event)
+
+    async def reply(text: str) -> str:
+        asked.append(text)
+        return "ответ"
+
+    pipeline = voice.VoicePipeline(voice.EnergyVAD(), BrokenSTT(), FakeTTS(), reply, emit)
+    asyncio.run(pipeline.process_utterance(b"\x00" * voice.FRAME_BYTES))
+    assert asked == []
+    assert [e.type for e in events] == ["listening_end", "error"]
+    assert events[-1].data["message"] == "Не расслышал, повторите"
