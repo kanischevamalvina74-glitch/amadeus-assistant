@@ -13,3 +13,17 @@ import subprocess
 NO_WINDOW: dict[str, int] = (
     {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)} if os.name == "nt" else {}
 )
+
+
+def hidden_console() -> dict[str, object]:
+    """Для терминала проекта: консоль есть, но скрыта.
+
+    Без консоли совсем (CREATE_NO_WINDOW) cmd печатает через кодовую страницу ANSI
+    и теряет кириллицу («привет» → «??????»). Скрытая консоль сохраняет обычный вывод.
+    """
+    if os.name != "nt":
+        return {}
+    info = subprocess.STARTUPINFO()  # type: ignore[attr-defined]
+    info.dwFlags |= subprocess.STARTF_USESHOWWINDOW  # type: ignore[attr-defined]
+    info.wShowWindow = 0  # SW_HIDE
+    return {"startupinfo": info}

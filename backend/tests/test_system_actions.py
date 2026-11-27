@@ -34,7 +34,7 @@ def test_power_builds_known_commands() -> None:
 
 def test_app_allowlist_blocks_unknown_paths(monkeypatch) -> None:
     opened: list[list[str]] = []
-    monkeypatch.setattr(system.subprocess, "Popen", lambda command: opened.append(command))  # type: ignore[arg-type]
+    monkeypatch.setattr(system.subprocess, "Popen", lambda command, **_kwargs: opened.append(command))  # type: ignore[arg-type]
     result = system.open_app("блокнот")
     assert result["ok"] is True
     assert opened
