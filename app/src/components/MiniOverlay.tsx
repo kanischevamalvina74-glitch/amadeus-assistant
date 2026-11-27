@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObjec
 import type { HudState } from "./primitives";
 import { CoreMark } from "./CoreMark";
 import { ParticleSphere } from "./ParticleSphere";
-import type { AvatarMode } from "../lib/preferences";
+import { loadMiniPrefs, type AvatarMode } from "../lib/preferences";
 import { useLocale } from "../lib/i18n";
 import { useWakeWord } from "../hooks/useWakeWord";
 import { useWakeSocket } from "../hooks/useWakeSocket";
@@ -33,6 +33,8 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
   const { t: tr } = useLocale();
   const [state, setState] = useState<HudState>("idle");
   const [caption, setCaption] = useState(tr("mini.wake"));
+  // Настройки окошка читаем при каждом открытии: меняют их в Мастерской.
+  const [showCaption] = useState(() => loadMiniPrefs().showCaption);
   const [level, setLevel] = useState(0);
   const [hintVisible, setHintVisible] = useState(true);
   const [subtitles, setSubtitles] = useState<Array<{ speaker: "Вы" | "Amadeus"; text: string }>>([]);
@@ -266,9 +268,11 @@ export function MiniOverlay({ onRestore, onVoiceCommand, conversationId, avatar,
           <span className="mini-card__dot" aria-hidden="true" />
           <span data-tauri-drag-region>{statusText}</span>
         </div>
-        <p className="mini-card__caption" role="status" aria-label="Подпись состояния" data-tauri-drag-region>
-          {caption}
-        </p>
+        {showCaption && (
+          <p className="mini-card__caption" role="status" aria-label="Подпись состояния" data-tauri-drag-region>
+            {caption}
+          </p>
+        )}
         <span className="mini-card__hair" aria-hidden="true" />
       </section>
 

@@ -1,3 +1,4 @@
+import { loadMiniPrefs } from "./preferences";
 import { invoke } from "@tauri-apps/api/core";
 
 /** Клиент локального ядра (HTTP-зеркало Tauri IPC). При недоступности ядра UI работает в демо-режиме. */
@@ -116,10 +117,21 @@ export const shell = {
   async setMiniWindow(enabled: boolean): Promise<boolean> {
     if (!("__TAURI_INTERNALS__" in window)) return true;
     try {
-      await invoke("window_mini", { enabled });
+      await invoke("window_mini", { enabled, onTop: loadMiniPrefs().onTop });
       return true;
     } catch (error) {
       console.warn("window_mini", enabled, error);
+      return false;
+    }
+  },
+
+  /** Забыть место окошка: в следующий раз оно встанет в правый нижний угол. */
+  async resetMiniPosition(): Promise<boolean> {
+    if (!("__TAURI_INTERNALS__" in window)) return false;
+    try {
+      await invoke("window_mini_reset_position");
+      return true;
+    } catch {
       return false;
     }
   },
