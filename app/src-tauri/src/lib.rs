@@ -117,6 +117,14 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
                 }
             }
         });
+        // Ручку процесса кладём сразу: если приложение закроют во время ожидания,
+        // RunEvent::Exit найдёт и остановит ядро.
+        *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Sidecar(child));
+        let forget_child = || {
+            if let Ok(mut guard) = state.0.lock() {
+                guard.take();
+            }
+        };
         // Ждём, пока ядро реально поднимет порт. Иначе при быстром повторном
         // вызове запускается ещё один сайдкар, который не может занять порт.
         // Ядро на Windows поднимается медленно (PyInstaller + тяжёлые библиотеки),
@@ -129,15 +137,16 @@ fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Re
                 break;
             }
             if exited.load(std::sync::atomic::Ordering::SeqCst) {
+                forget_child();
                 return Err("ядро завершилось при запуске, подробности в logs/core.log".into());
             }
             std::thread::sleep(Duration::from_millis(200));
         }
         // Ядро могло занять порт и тут же упасть: перепроверяем флаг уже после готовности.
         if exited.load(std::sync::atomic::Ordering::SeqCst) {
+            forget_child();
             return Err("ядро завершилось при запуске, подробности в logs/core.log".into());
         }
-        *state.0.lock().map_err(|e| e.to_string())? = Some(BackendChild::Sidecar(child));
         return Ok(if ready {
             "ядро запущено из externalBin".into()
         } else {
@@ -205,7 +214,10 @@ fn capture_screen_base64(app: tauri::AppHandle) -> Result<String, String> {
         .map_err(|error| error.to_string())?
         .join("screenshots");
     std::fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
-    let path = dir.join(format!("screen-{stamp}.png"));
+    // Счётчик к метке времени: два снимка в одну миллисекунду не делят файл.
+    static CAPTURE_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let seq = CAPTURE_SEQ.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let path = dir.join(format!("screen-{stamp}-{seq}.png"));
     image.save(&path).map_err(|error| error.to_string())?;
     let bytes = std::fs::read(&path).map_err(|error| error.to_string())?;
     Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
