@@ -219,6 +219,16 @@ static MINI_ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBoo
 static MINI_ON_TOP: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 static MINI_MINIMIZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
+/// Сохранение, чтение и сброс места окошка идут по очереди под этим замком.
+static MINI_POS_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+/// «Вернуть в угол» нажали: до следующего открытия окошка место не сохраняем,
+/// иначе запоздавший window_mini(false) записал бы старое место обратно.
+static MINI_POS_RESET: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn mini_pos_lock() -> std::sync::MutexGuard<'static, ()> {
+    MINI_POS_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 fn mini_pos_path(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
     app.path().app_data_dir().ok().map(|dir| dir.join("mini-window.json"))
 }
@@ -247,6 +257,10 @@ fn load_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) -> Optio
 }
 
 fn save_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+    let _guard = mini_pos_lock();
+    if MINI_POS_RESET.load(std::sync::atomic::Ordering::SeqCst) {
+        return;
+    }
     let (Some(path), Ok(pos)) = (mini_pos_path(app), window.outer_position()) else { return };
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
@@ -276,7 +290,16 @@ fn window_mini(app: tauri::AppHandle, enabled: bool, on_top: Option<bool>) -> Re
         MINI_ON_TOP.store(on_top, std::sync::atomic::Ordering::SeqCst);
         window.set_always_on_top(on_top).map_err(err)?;
         window.set_skip_taskbar(true).map_err(err)?;
-        let position = load_mini_pos(&app, &window).or_else(|| {
+        let saved = {
+            let _guard = mini_pos_lock();
+            // После «Вернуть в угол» — угол, и дальше место снова запоминается.
+            if MINI_POS_RESET.swap(false, std::sync::atomic::Ordering::SeqCst) {
+                None
+            } else {
+                load_mini_pos(&app, &window)
+            }
+        };
+        let position = saved.or_else(|| {
             let monitor = window.current_monitor().ok().flatten()?;
             let scale = monitor.scale_factor();
             let size = monitor.size();
@@ -311,8 +334,10 @@ fn window_mini(app: tauri::AppHandle, enabled: bool, on_top: Option<bool>) -> Re
 /// «Вернуть в угол» в Мастерской: забываем место, окошко встанет в правый нижний угол.
 #[tauri::command]
 fn window_mini_reset_position(app: tauri::AppHandle) -> Result<(), String> {
-    let Some(path) = mini_pos_path(&app) else { return Ok(()) };
-    match std::fs::remove_file(path) {
+    let _guard = mini_pos_lock();
+    let dir = app.path().app_data_dir().map_err(|e| format!("не найдена папка данных: {e}"))?;
+    MINI_POS_RESET.store(true, std::sync::atomic::Ordering::SeqCst);
+    match std::fs::remove_file(dir.join("mini-window.json")) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(e.to_string()),
