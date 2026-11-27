@@ -46,8 +46,15 @@ fn backend_port_open() -> bool {
 
 /// Поднимает ядро: в релизе — собранный externalBin, в dev — системный Python
 /// с исходниками рядом с src-tauri (см. tauri.conf.json).
-#[tauri::command]
+/// Один запуск ядра за раз: команда теперь идёт не в главном потоке, и два быстрых
+/// вызова иначе подняли бы два сайдкара.
+static START_LOCK: Mutex<()> = Mutex::new(());
+
+// async: синхронная команда Tauri выполняется в главном потоке, а здесь ожидание
+// ядра до 2 минут. Окно на это время замирало («Не отвечает», Application Hang 1002).
+#[tauri::command(async)]
 fn start_backend(app: tauri::AppHandle, state: tauri::State<SidecarState>) -> Result<String, String> {
+    let _start = START_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     if backend_port_open() {
         return Ok("ядро уже отвечает на :8787".into());
     }
@@ -181,7 +188,8 @@ fn notify_os(app: tauri::AppHandle, title: String, body: String) -> Result<(), S
 }
 
 /// Снимок основного монитора в base64 PNG — уходит в ядро как обычное вложение.
-#[tauri::command]
+// async: снимок экрана и кодирование PNG не должны держать главный поток.
+#[tauri::command(async)]
 fn capture_screen_base64(app: tauri::AppHandle) -> Result<String, String> {
     let monitors = xcap::Monitor::all().map_err(|error| error.to_string())?;
     let monitor = monitors.first().ok_or("монитор не найден")?;
