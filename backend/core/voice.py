@@ -11,6 +11,7 @@ import asyncio
 import logging
 import math
 import os
+import re
 import tempfile
 from array import array
 from dataclasses import dataclass, field
@@ -19,7 +20,7 @@ from typing import AsyncIterator, Awaitable, Callable, Protocol
 
 from .proc import NO_WINDOW
 
-logger = logging.getLogger("amadeus.voice")
+logger = logging.getLogger("amadeus.voice")  # пишет через обработчики «amadeus» (core.log)
 
 SAMPLE_RATE = 16_000
 FRAME_MS = 20
@@ -215,13 +216,26 @@ class PiperTTS:
 
 
 # Фразы, которые Whisper «слышит» в тишине и шуме: остатки субтитров из обучающих данных.
-_HALLUCINATIONS = (
-    "субтитр",
-    "продолжение следует",
-    "спасибо за просмотр",
-    "подписывайтесь на канал",
-    "dimatorzok",
+# Отбрасываем, только если вся фраза целиком — такая подпись, а не просто упоминает слово.
+_HALLUCINATIONS = tuple(
+    re.compile(pattern)
+    for pattern in (
+        r"(редактор )?субтитры (сделал|создавал|подготовил|делал|редактировал)( \S+){0,3}",
+        r"редактор субтитров( \S+){0,8}",
+        r"продолжение следует",
+        r"(спасибо|благодарю) за (просмотр|внимание)",
+        r"подписывайтесь на (мой |наш )?канал",
+    )
 )
+
+
+def _normalize(text: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", text.lower()).split())
+
+
+def _question_tokens(text: str) -> int:
+    """Слова, целиком состоящие из «?»: так выглядит кириллица, потерянная при перекодировке."""
+    return sum(1 for token in text.split() if re.fullmatch(r"\?{2,}[.,:;!]*", token))
 
 
 def transcript_problem(text: str) -> str | None:
@@ -231,13 +245,26 @@ def transcript_problem(text: str) -> str | None:
         return "empty"
     if "\ufffd" in stripped:
         return "broken-encoding"
-    visible = [ch for ch in stripped if not ch.isspace()]
-    if visible and sum(ch == "?" for ch in visible) / len(visible) > 0.3:
+    tokens = stripped.split()
+    broken = _question_tokens(stripped)
+    # «Что???» или «Правда?» — обычные вопросы; «?????? ?????» — потерянные буквы.
+    if broken >= 2 or (broken and broken * 2 >= len(tokens)):
         return "broken-encoding"
-    lowered = stripped.lower()
-    if any(marker in lowered for marker in _HALLUCINATIONS):
+    normalized = _normalize(stripped)
+    if "dimatorzok" in normalized or any(p.fullmatch(normalized) for p in _HALLUCINATIONS):
         return "hallucination"
     return None
+
+
+def transcript_stats(text: str) -> str:
+    """Сводка для журнала без содержимого: по ней видно, где теряются буквы, но текст не восстановить."""
+    cyrillic = sum("\u0400" <= ch <= "\u04ff" for ch in text)
+    latin = sum(ch.isascii() and ch.isalpha() for ch in text)
+    replacement = text.count("\ufffd")
+    return (
+        f"len={len(text)} cyrillic={cyrillic} latin={latin} "
+        f"question={text.count('?')} replacement={replacement}"
+    )
 
 
 WAKE_WORDS = ("амадеус", "амадей", "amadeus", "амадиус")
@@ -289,7 +316,12 @@ class VoicePipeline:
     async def process_text(self, text: str) -> None:
         """Текстовый вход в той же сессии (клавиша W без микрофона)."""
         text = text.strip()
-        if not text:
+        problem = transcript_problem(text)
+        if problem == "empty":
+            return
+        if problem:
+            logger.warning("Текст отброшен (%s): %s", problem, transcript_stats(text))
+            await self.emit(VoiceEvent("error", {"message": "Не расслышал, повторите"}))
             return
         await self.emit(VoiceEvent("transcript", {"text": text}))
         if await self._local_command(text):
@@ -302,12 +334,7 @@ class VoicePipeline:
         problem = transcript_problem(text or "")
         if problem:
             if problem != "empty":
-                # Коды символов, а не сам текст: видно, где теряется кириллица.
-                logger.warning(
-                    "STT отброшен (%s): %s",
-                    problem,
-                    " ".join(f"U+{ord(ch):04X}" for ch in text[:16]),
-                )
+                logger.warning("STT отброшен (%s): %s", problem, transcript_stats(text))
             await self.emit(VoiceEvent("error", {"message": "Не расслышал, повторите"}))
             return
         await self.emit(VoiceEvent("transcript", {"text": text}))
