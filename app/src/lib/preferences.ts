@@ -37,3 +37,34 @@ export function saveStartSphere(value: boolean) {
     /* приватный режим — просто не сохраняем */
   }
 }
+
+/** Настройки свёрнутого окошка. */
+export type MiniPrefs = {
+  /** Окошко поверх всех окон (в оболочке Tauri). */
+  onTop: boolean;
+  /** Показывать последнюю фразу под статусом. */
+  showCaption: boolean;
+};
+
+const MINI_PREFS_KEY = "amadeus.mini";
+const MINI_DEFAULTS: MiniPrefs = { onTop: true, showCaption: true };
+
+export function loadMiniPrefs(): MiniPrefs {
+  try {
+    const raw = JSON.parse(localStorage.getItem(MINI_PREFS_KEY) ?? "{}") as Partial<MiniPrefs>;
+    return {
+      onTop: typeof raw.onTop === "boolean" ? raw.onTop : MINI_DEFAULTS.onTop,
+      showCaption: typeof raw.showCaption === "boolean" ? raw.showCaption : MINI_DEFAULTS.showCaption,
+    };
+  } catch {
+    return { ...MINI_DEFAULTS };
+  }
+}
+
+export function saveMiniPrefs(prefs: MiniPrefs) {
+  try {
+    localStorage.setItem(MINI_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* приватный режим — просто не сохраняем */
+  }
+}

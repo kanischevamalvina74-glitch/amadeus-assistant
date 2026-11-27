@@ -9,7 +9,8 @@ import {
 import { getMe, getUpdates, looksLikeToken, sendMessage, type TelegramBot } from "../lib/telegram";
 import { CoreMark } from "./CoreMark";
 import { ParticleSphere } from "./ParticleSphere";
-import type { AvatarMode } from "../lib/preferences";
+import { loadMiniPrefs, saveMiniPrefs, type AvatarMode, type MiniPrefs } from "../lib/preferences";
+import { shell } from "../lib/api";
 import "./workshop.css";
 
 type Tab = "commands" | "telegram" | "avatar";
@@ -641,6 +642,71 @@ function AvatarTab({ avatar, onAvatar }: { avatar: AvatarMode; onAvatar: (mode: 
       <p className="w-note">
         Оба варианта нарисованы с нуля. Позже сюда можно добавить загрузку собственной модели.
       </p>
+
+      <MiniSettings />
     </div>
+  );
+}
+
+/** Окошко: поверх всех окон, последняя фраза, сброс положения. */
+function MiniSettings() {
+  const [prefs, setPrefs] = useState<MiniPrefs>(loadMiniPrefs);
+  const [resetNote, setResetNote] = useState("");
+  const inShell = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+  const update = (patch: Partial<MiniPrefs>) =>
+    setPrefs((prev) => {
+      const next = { ...prev, ...patch };
+      saveMiniPrefs(next);
+      return next;
+    });
+
+  return (
+    <section className="mini-settings" aria-label="Окошко">
+      <h2>Окошко</h2>
+      <label className="mini-settings__row">
+        <span>
+          <strong>Поверх всех окон</strong>
+          <small>Окошко не прячется за другими программами.</small>
+        </span>
+        <input
+          type="checkbox"
+          checked={prefs.onTop}
+          disabled={!inShell}
+          aria-label="Окошко поверх всех окон"
+          onChange={(event) => update({ onTop: event.target.checked })}
+        />
+      </label>
+      <label className="mini-settings__row">
+        <span>
+          <strong>Показывать последнюю фразу</strong>
+          <small>Под статусом видно, что вы сказали и что ответил Amadeus.</small>
+        </span>
+        <input
+          type="checkbox"
+          checked={prefs.showCaption}
+          aria-label="Показывать последнюю фразу"
+          onChange={(event) => update({ showCaption: event.target.checked })}
+        />
+      </label>
+      <div className="mini-settings__row">
+        <span>
+          <strong>Положение окошка</strong>
+          <small>{resetNote || "Окошко запоминает, куда вы его перетащили."}</small>
+        </span>
+        <button
+          type="button"
+          className="w-btn"
+          disabled={!inShell}
+          onClick={() =>
+            void shell
+              .resetMiniPosition()
+              .then((ok) => setResetNote(ok ? "Готово: в следующий раз окошко встанет в правый нижний угол." : "Не получилось сбросить положение."))
+          }
+        >
+          Вернуть в угол
+        </button>
+      </div>
+      {!inShell && <p className="w-note">Поверх окон и положение работают в установленном приложении.</p>}
+    </section>
   );
 }

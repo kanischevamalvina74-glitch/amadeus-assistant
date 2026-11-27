@@ -215,6 +215,8 @@ const MINI_SIZE: (f64, f64) = (300.0, 360.0);
 /// Окно сейчас в свёрнутом режиме: только тогда запоминаем его место.
 static MINI_ACTIVE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 /// Окошко убрано «—» на панель задач: при возвращении снова прячем значок.
+/// Настройка «Окошко поверх всех окон» из Мастерской.
+static MINI_ON_TOP: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 static MINI_MINIMIZED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 fn mini_pos_path(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
@@ -255,7 +257,7 @@ fn save_mini_pos(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
 /// Свёрнутый режим: маленькое прозрачное окно без рамки поверх всех окон.
 /// Первый раз — правый нижний угол текущего монитора, дальше — где его оставили.
 #[tauri::command]
-fn window_mini(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+fn window_mini(app: tauri::AppHandle, enabled: bool, on_top: Option<bool>) -> Result<(), String> {
     let window = app.get_webview_window("main").ok_or("окно main не найдено")?;
     let err = |e: tauri::Error| e.to_string();
     if enabled {
@@ -270,7 +272,9 @@ fn window_mini(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
         window.set_resizable(false).map_err(err)?;
         let _ = window.set_maximizable(false);
         window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h })).map_err(err)?;
-        window.set_always_on_top(true).map_err(err)?;
+        let on_top = on_top.unwrap_or(true);
+        MINI_ON_TOP.store(on_top, std::sync::atomic::Ordering::SeqCst);
+        window.set_always_on_top(on_top).map_err(err)?;
         window.set_skip_taskbar(true).map_err(err)?;
         let position = load_mini_pos(&app, &window).or_else(|| {
             let monitor = window.current_monitor().ok().flatten()?;
@@ -302,6 +306,17 @@ fn window_mini(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     }
     window.show().map_err(err)?;
     Ok(())
+}
+
+/// «Вернуть в угол» в Мастерской: забываем место, окошко встанет в правый нижний угол.
+#[tauri::command]
+fn window_mini_reset_position(app: tauri::AppHandle) -> Result<(), String> {
+    let Some(path) = mini_pos_path(&app) else { return Ok(()) };
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 /// «—» в окошке: убрать с экрана, но оставить на панели задач, чтобы вернуть одним кликом.
@@ -422,7 +437,7 @@ pub fn run() {
                     && MINI_MINIMIZED.swap(false, std::sync::atomic::Ordering::SeqCst);
                 if restored {
                     let _ = window.set_skip_taskbar(true);
-                    let _ = window.set_always_on_top(true);
+                    let _ = window.set_always_on_top(MINI_ON_TOP.load(std::sync::atomic::Ordering::SeqCst));
                 }
             }
         })
@@ -436,6 +451,7 @@ pub fn run() {
             window_fullscreen,
             window_mini,
             window_mini_minimize,
+            window_mini_reset_position,
             setup_status,
             setup_complete,
             settings_get,

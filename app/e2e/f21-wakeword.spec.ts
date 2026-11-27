@@ -40,6 +40,13 @@ test.describe("F21 кодовая фраза и свёрнутый режим", 
     await expect(page.locator(".mini-card .core-mark")).toBeVisible();
   });
 
+  test("F21-H6 «Показывать последнюю фразу» выключена — подписи нет", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("amadeus.mini", JSON.stringify({ onTop: true, showCaption: false })));
+    await collapse(page);
+    await expect(page.locator(".mini-card__status")).toHaveText("Жду");
+    await expect(page.getByRole("status", { name: "Подпись состояния" })).toHaveCount(0);
+  });
+
   test("F21-H2 активация клавишей W и голосовая команда", async ({ page }) => {
     await collapse(page);
     const caption = page.getByRole("status", { name: "Подпись состояния" });

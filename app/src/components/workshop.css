@@ -393,3 +393,14 @@
 @media (prefers-reduced-motion: reduce) {
   .w-switch > span, .w-switch > span::after { transition: none; }
 }
+
+/* Настройки окошка во вкладке «Аватар». */
+.mini-settings { margin-top: 28px; display: grid; gap: 4px; max-width: 640px; }
+.mini-settings h2 { font-size: 15px; margin: 0 0 8px; }
+.mini-settings__row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px 0; border-top: 1px solid var(--color-border, rgba(255, 255, 255, .08));
+}
+.mini-settings__row > span { display: grid; gap: 2px; }
+.mini-settings__row small { color: var(--color-text-dim, inherit); opacity: .85; }
+.mini-settings__row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--color-accent); flex: none; }
